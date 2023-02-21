@@ -20,31 +20,26 @@ exports.newProduct = async (req, res, next) => {
 
 exports.getProducts = async (req, res, next) => {
   const resPerPage = 4;
-
   const productsCount = await Product.countDocuments();
 
   const apiFeatures = new APIFeatures(Product.find(), req.query)
     .search()
     .filter();
 
-  //   const products = await Product.find();
-
-  // const products = await Product.find();
+  let products = await apiFeatures.query;
+  let filteredProductsCount = products.length;
 
   apiFeatures.pagination(resPerPage);
+  products = await apiFeatures.query;
 
-  const products = await apiFeatures.query;
+  res.status(200).json({
+    success: true,
+    productsCount,
+    resPerPage,
+    filteredProductsCount,
+    products,
+  });
 
-  // console.log(products)
-
-  setTimeout(() => {
-    res.status(200).json({
-      success: true,
-      // count: products.length,
-      productsCount,
-      products,
-    });
-  }, 2000);
   return next(new ErrorHandler("my error", 400));
 };
 
