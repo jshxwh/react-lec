@@ -26,11 +26,11 @@ exports.getProducts = async (req, res, next) => {
     .search()
     .filter();
 
+  apiFeatures.pagination(resPerPage);
   let products = await apiFeatures.query;
   let filteredProductsCount = products.length;
 
-  apiFeatures.pagination(resPerPage);
-  products = await apiFeatures.query;
+  // products = await apiFeatures.query;
 
   res.status(200).json({
     success: true,
