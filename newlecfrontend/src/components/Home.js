@@ -22,7 +22,7 @@ const Home = ({ match }) => {
     filteredProductsCount,
   } = useSelector((state) => state.products);
 
-  const keyword = useParams();
+  const {keyword} = useParams();
 
   useEffect(() => {
     if (error) {
