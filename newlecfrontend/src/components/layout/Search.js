@@ -1,17 +1,15 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-const Search = () => {
+const Search = ({ history }) => {
   const [keyword, setKeyword] = useState("");
-  let navigate = useNavigate();
 
   const searchHandler = (e) => {
     e.preventDefault();
 
     if (keyword.trim()) {
-      navigate(`/search/${keyword}`);
+      history.push(`/search/${keyword}`);
     } else {
-      navigate("/");
+      history.push("/");
     }
   };
 
