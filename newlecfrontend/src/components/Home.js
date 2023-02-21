@@ -37,6 +37,9 @@ const Home = ({ match }) => {
   }
 
   let count = productsCount;
+  if (keyword) {
+    count = filteredProductsCount
+}
 
   return (
     <Fragment>
