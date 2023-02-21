@@ -26,11 +26,11 @@ exports.getProducts = async (req, res, next) => {
     .search()
     .filter();
 
-  apiFeatures.pagination(resPerPage);
-  let products = await apiFeatures.query;
-  let filteredProductsCount = products.length;
+  // let products = await apiFeatures.query;
 
-  // products = await apiFeatures.query;
+  apiFeatures.pagination(resPerPage);
+  products = await apiFeatures.query;
+  let filteredProductsCount = products.length;
 
   res.status(200).json({
     success: true,
@@ -40,7 +40,7 @@ exports.getProducts = async (req, res, next) => {
     products,
   });
 
-  return next(new ErrorHandler("my error", 400));
+  // return next(new ErrorHandler("my error", 400));
 };
 
 exports.getSingleProduct = async (req, res, next) => {

@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
 import "../../App.css";
-
+import { Route, Link, Routes } from "react-router-dom";
 import Search from "./Search";
 
 const Header = () => {
@@ -12,9 +12,16 @@ const Header = () => {
             <img src="./images/shopit_logo.png" />
           </div>
         </div>
+
         <div className="col-12 col-md-6 mt-2 mt-md-0">
           <Search />
         </div>
+
+        {/* <div className="col-12 col-md-6 mt-2 mt-md-0">
+          <Routes>
+            <Route render={({ history }) => <Search history={history} />} />
+          </Routes>
+        </div> */}
 
         <div className="col-12 col-md-3 mt-4 mt-md-0 text-center">
           <button className="btn" id="login_btn">
