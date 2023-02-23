@@ -1,32 +1,34 @@
 import React, { Fragment, useState, useEffect } from "react";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import Loader from "../layout/Loader";
 
 import MetaData from "../layout/MetaData";
 
-import { useAlert } from "react-alert";
-
 import { useDispatch, useSelector } from "react-redux";
 
 import { login, clearErrors } from "../../actions/userActions";
 
-const Login = ({ history }) => {
+const Login = () => {
   const [email, setEmail] = useState("");
 
   const [password, setPassword] = useState("");
 
-  const alert = useAlert();
-
   const dispatch = useDispatch();
+
+  let navigate = useNavigate();
+
+  let location = useLocation();
+
+  const redirect = location.search ? location.search.split("=")[1] : "/";
 
   const { isAuthenticated, error, loading } = useSelector(
     (state) => state.auth
   );
 
   useEffect(() => {
-    if (isAuthenticated && redirect == "shipping") {
+    if (isAuthenticated && redirect === "shipping") {
       // navigate(redirect.get('redirect'), {replace: true})
 
       navigate(`/${redirect}`, { replace: true });
@@ -37,7 +39,7 @@ const Login = ({ history }) => {
 
       dispatch(clearErrors());
     }
-  }, [dispatch, alert, isAuthenticated, error, navigate]);
+  }, [dispatch, isAuthenticated, error, navigate, redirect]);
 
   const submitHandler = (e) => {
     e.preventDefault();

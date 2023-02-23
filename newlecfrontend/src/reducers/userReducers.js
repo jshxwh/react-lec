@@ -3,6 +3,9 @@ import {
   LOGIN_SUCCESS,
   LOGIN_FAIL,
   CLEAR_ERRORS,
+  REGISTER_USER_REQUEST,
+  REGISTER_USER_SUCCESS,
+  REGISTER_USER_FAIL,
 } from "../constants/userConstants";
 
 export const authReducer = (state = { user: {} }, action) => {
