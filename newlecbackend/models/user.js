@@ -44,6 +44,8 @@ const userSchema = new mongoose.Schema({
       type: String,
 
       required: true,
+
+      default: "https://wallpapercave.com/wp/wc1700893.jpg",
     },
   },
 
