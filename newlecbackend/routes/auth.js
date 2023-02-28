@@ -4,6 +4,8 @@ const router = express.Router();
 
 const getProducts = require("../models/product");
 
+const upload = require("../utils/multer");
+
 const {
   registerUser,
 
@@ -55,7 +57,7 @@ router.put("/password/update", isAuthenticatedUser, updatePassword);
 
 router.get("/me", isAuthenticatedUser, getUserProfile);
 
-router.post("/register", registerUser);
+router.post("/register", upload.single("avatar"), registerUser);
 
 router.post("/login", loginUser);
 
