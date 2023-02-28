@@ -116,11 +116,13 @@ exports.forgotPassword = async (req, res, next) => {
 
   // Create reset password url
 
-  const resetUrl = `${req.protocol}://${req.get(
-    "host"
-  )}/password/reset/${resetToken}`;
+  // const resetUrl = `${req.protocol}://${req.get('host')}/password/reset/${resetToken}`;
 
-  const message = `Your password reset token is as follow:\n\n${resetUrl}\n\nIf you have not requested this email, then ignore it.`;
+  const resetUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`;
+
+  const message = `<p>Your password reset token is as follow:\n\n<a href="${resetUrl}">Reset Password</a>\n\nIf you have not requested this email, then ignore it.</p>`;
+
+  const html = `<p>Your password reset token is as follow:\n\n<a href="${resetUrl}">Reset Password</a>\n\nIf you have not requested this email, then ignore it.</p>`;
 
   try {
     await sendEmail({
@@ -129,6 +131,8 @@ exports.forgotPassword = async (req, res, next) => {
       subject: "ShopIT Password Recovery",
 
       message,
+
+      html,
     });
 
     res.status(200).json({
@@ -198,7 +202,7 @@ exports.getUserProfile = async (req, res, next) => {
 };
 
 exports.updatePassword = async (req, res, next) => {
-  const user = await User.findById(req.user.id).select("password");
+  const user = await User.findById(req.user.id).select("+password");
 
   // Check previous user password
 
@@ -218,18 +222,35 @@ exports.updatePassword = async (req, res, next) => {
 exports.updateProfile = async (req, res, next) => {
   const newUserData = {
     name: req.body.name,
-
     email: req.body.email,
   };
+  // Update avatar
 
+  if (req.body.avatar !== "") {
+    const user = await User.findById(req.user.id);
+    const image_id = user.avatar.public_id;
+    const res = await cloudinary.uploader.destroy(image_id);
+    const result = await cloudinary.v2.uploader.upload(
+      req.body.avatar,
+      {
+        folder: "avatars",
+        width: 150,
+        crop: "scale",
+      },
+      (err, res) => {
+        console.log(err, res);
+      }
+    );
+    newUserData.avatar = {
+      public_id: result.public_id,
+      url: result.secure_url,
+    };
+  }
   const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
     new: true,
-
     runValidators: true,
-
     // useFindAndModify: false
   });
-
   res.status(200).json({
     success: true,
   });

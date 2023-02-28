@@ -51,7 +51,12 @@ router
   .route("/admin/users")
   .get(isAuthenticatedUser, authorizeRoles("admin"), allUsers);
 
-router.put("/me/update", isAuthenticatedUser, updateProfile);
+router.put(
+  "/me/update",
+  isAuthenticatedUser,
+  upload.single("avatar"),
+  updateProfile
+);
 
 router.put("/password/update", isAuthenticatedUser, updatePassword);
 

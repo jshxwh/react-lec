@@ -1,0 +1,3613 @@
+middlewares/errors.js
+
+const ErrorHandler = require('../utils/errorHandler');
+
+
+
+module.exports = (err, req, res, next) => {
+
+	err.statusCode = err.statusCode || 500;
+
+	// err.message = err.message || 'Internal server error';
+
+	if(process.env.NODE_ENV === 'DEVELOPMENT'){
+
+		res.status(err.statusCode).json({
+
+			success: false,
+
+			error: err,
+
+			errMessage: err.message,
+
+			stack: err.stack
+
+		})
+
+	}
+
+
+
+	// if(process.env.NODE_ENV === 'PRODUCTION'){
+
+	// 	let error = {...err}
+
+	// 	error.message = err.message;
+
+
+
+	// 	// Wrong Mongoose Object ID Error
+
+    //     if (err.name === 'CastError') {
+
+    //         const message = `Resource not found. Invalid: ${err.path}`
+
+    //         error = new ErrorHandler(message, 400)
+
+    //     }
+
+
+
+    //     // Handling Mongoose Validation Error
+
+    //     if (err.name === 'ValidationError') {
+
+    //         const message = Object.values(err.errors).map(value => value.message);
+
+    //         error = new ErrorHandler(message, 400)
+
+    //     }
+
+
+
+    //     // Handling Mongoose duplicate key errors
+
+    //     if (err.code === 11000) {
+
+    //         const message = `Duplicate ${Object.keys(err.keyValue)} entered`
+
+    //         error = new ErrorHandler(message, 400)
+
+    //     }
+
+        
+
+	// 	res.status(error.statusCode).json({
+
+	// 		success: false,
+
+	// 		message: error.message || 'Internal server error'			
+
+	// 	})
+
+	// }
+
+
+
+	// res.status(err.statusCode).json({
+
+	// 	success: false,
+
+	// 	error: err.stack
+
+	// })
+
+}
+
+
+
+app.js
+
+const errorMiddleware = require('./middlewares/errors');
+
+app.use(errorMiddleware);
+
+
+
+Login user actions
+
+    catch (error) {
+
+        dispatch({
+
+            type: LOGIN_FAIL,
+
+            payload: error.response.data.errMessage
+
+        })
+
+       
+
+        
+
+    }
+
+}
+
+
+
+utils/multer
+
+const multer = require("multer");
+
+const path = require("path");
+
+
+
+module.exports = multer({
+
+    limits: { fieldSize: 25 * 1024 * 1024 },
+
+    storage: multer.diskStorage({}),
+
+    fileFilter: (req, file, cb) => {
+
+        let ext = path.extname(file.originalname).toLowerCase();
+
+        if (ext !== ".jpg" && ext !== ".jpeg" && ext !== ".png") {
+
+            cb(new Error("Unsupported file type!"), false);
+
+            return;
+
+        }
+
+        cb(null, true);
+
+    },
+
+});
+
+
+
+authcontroller
+
+exports.registerUser = async (req, res, next) => {
+
+    
+
+    const result = await cloudinary.v2.uploader.upload(req.body.avatar, {
+
+        folder: 'avatars',
+
+        width: 150,
+
+        crop: "scale"
+
+    }, (err, res) => {
+
+        console.log(err, res);
+
+    });
+
+    // return console.log(result)
+
+    const { name,
+
+        email,
+
+        password,
+
+
+
+    } = req.body;
+
+    const user = await User.create({
+
+        name,
+
+        email,
+
+        password,
+
+        avatar: {
+
+            public_id: result.public_id,
+
+            url: result.secure_url
+
+        }
+
+
+
+     )
+
+    sendToken(user, 200, res)
+
+};
+
+
+
+routes/auth
+
+router.post('/register', upload.single("avatar"), registerUser);
+
+
+
+export const LOAD_USER_REQUEST = 'LOAD_USER_REQUEST'
+
+export const LOAD_USER_SUCCESS = 'LOAD_USER_SUCCESS'
+
+export const LOAD_USER_FAIL = 'LOAD_USER_FAIL'
+
+
+
+
+
+userreducers
+
+
+
+LOAD_USER_REQUEST,
+
+    LOAD_USER_SUCCESS,
+
+    LOAD_USER_FAIL,
+
+
+
+
+
+ case REGISTER_USER_REQUEST:
+
+        case LOGIN_REQUEST:
+
+        case LOAD_USER_REQUEST:
+
+            return {
+
+                loading: true,
+
+                isAuthenticated: false,
+
+            }
+
+        case REGISTER_USER_SUCCESS:
+
+        case LOGIN_SUCCESS:
+
+        case LOAD_USER_SUCCESS:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                isAuthenticated: true,
+
+                user: action.payload
+
+            }
+
+
+
+        case LOAD_USER_FAIL:
+
+            return {
+
+                loading: false,
+
+                isAuthenticated: false,
+
+                user: null,
+
+                error: action.payload
+
+            }
+
+
+
+usrActions
+
+LOAD_USER_REQUEST,
+
+    LOAD_USER_SUCCESS,
+
+    LOAD_USER_FAIL,
+
+
+
+// Load user
+
+export const loadUser = () => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: LOAD_USER_REQUEST })
+
+
+
+        const { data } = await axios.get('/api/v1/me')
+
+
+
+        dispatch({
+
+            type: LOAD_USER_SUCCESS,
+
+            payload: data.user
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: LOAD_USER_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+
+
+app.js
+
+import React, {useEffect, useState} from 'react'
+
+
+
+import { loadUser } from './actions/userActions'
+
+import { useSelector } from 'react-redux'
+
+import store from './store'
+
+
+
+function App() {
+
+   useEffect(() => {
+
+    store.dispatch(loadUser())
+
+  }, [])
+
+
+
+const { user, isAuthenticated, loading } = useSelector(state => state.auth)
+
+{!loading && (!isAuthenticated || user.role !== 'admin') && (
+
+          <Footer />
+
+          )}
+
+header.js
+
+import React, { Fragment } from 'react'
+
+import { Route, Link } from 'react-router-dom'
+
+
+
+import { useDispatch, useSelector } from 'react-redux'
+
+import { useAlert } from 'react-alert'
+
+import { logout } from '../../actions/userActions'
+
+
+
+import Search from './Search'
+
+
+
+import '../../App.css'
+
+
+
+const Header = () => {
+
+    const alert = useAlert();
+
+    const dispatch = useDispatch();
+
+
+
+    const { user, loading } = useSelector(state => state.auth)
+
+    // const { cartItems } = useSelector(state => state.cart)
+
+
+
+    // const logoutHandler = () => {
+
+    //     dispatch(logout());
+
+    //     alert.success('Logged out successfully.')
+
+    // }
+
+
+
+    return (
+
+        <Fragment>
+
+            <nav className="navbar row">
+
+                <div className="col-12 col-md-3">
+
+                    <div className="navbar-brand">
+
+                        <Link to="/">
+
+                            <img src="/images/shopit_logo.png" />
+
+                        </Link>
+
+                    </div>
+
+                </div>
+
+
+
+                <div className="col-12 col-md-6 mt-2 mt-md-0">
+
+                    <Route render={({ history }) => <Search history={history} />} />
+
+                </div>
+
+
+
+                <div className="col-12 col-md-6 mt-2 mt-md-0">
+
+					<Search />
+
+				</div>
+
+				<div className="col-12 col-md-3 mt-4 mt-md-0 text-center">
+
+					<Link to="/cart" style={{ textDecoration: 'none' }} >
+
+						<span id="cart" className="ml-3">Cart</span>
+
+						{/*<span className="ml-1" id="cart_count">{cartItems.length}</span>*/}
+
+						<span className="ml-1" id="cart_count">2</span>
+
+					</Link>
+
+
+
+					{user ? (
+
+						<div className="ml-4 dropdown d-inline">
+
+							<Link to="#!" className="btn dropdown-toggle text-white mr-4" type="button" id="dropDownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+
+								<figure className="avatar avatar-nav">
+
+									<img
+
+										src={user.avatar && user.avatar.url}
+
+										alt={user && user.name}
+
+										className="rounded-circle"
+
+									/>
+
+								</figure>
+
+								<span>{user && user.name}</span>
+
+							</Link>
+
+
+
+							<div className="dropdown-menu" aria-labelledby="dropDownMenuButton">
+
+
+
+								{user && user.role === 'admin' && (
+
+									<Link className="dropdown-item" to="/dashboard">Dashboard</Link>
+
+								)}
+
+								<Link className="dropdown-item" to="/orders/me">Orders</Link>
+
+								<Link className="dropdown-item" to="/me">Profile</Link>
+
+								{/*<Link className="dropdown-item text-danger" to="/" onClick={logoutHandler}>*/}
+
+								<Link className="dropdown-item text-danger" to="/" onClick={logoutHandler}>
+
+									Logout
+
+								</Link>
+
+
+
+							</div>
+
+						</div>
+
+
+
+					) : !loading && <Link to="/login" className="btn ml-4" id="login_btn">Login</Link>}
+
+				</div>
+
+            </nav>
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default Header
+
+
+
+userconstants
+
+export const LOGOUT_SUCCESS = 'LOGOUT_SUCCESS'
+
+export const LOGOUT_FAIL = 'LOGOUT_FAIL'
+
+
+
+userreducers
+
+LOGOUT_SUCCESS,
+
+    LOGOUT_FAIL,
+
+
+
+case LOGOUT_SUCCESS:
+
+            return {
+
+                loading: false,
+
+                isAuthenticated: false,
+
+                user: null
+
+            }
+
+case LOGOUT_FAIL:
+
+            return {
+
+                ...state,
+
+                error: action.payload
+
+            }
+
+
+
+
+
+// user actions Logout user
+
+export const logout = () => async (dispatch) => {
+
+    try {
+
+
+
+        await axios.get('/api/v1/logout')
+
+
+
+        dispatch({
+
+            type: LOGOUT_SUCCESS,
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: LOGOUT_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+
+
+user/profile.js
+
+import React, { Fragment } from 'react'
+
+import { Link } from 'react-router-dom'
+
+import { useSelector } from 'react-redux'
+
+
+
+import Loader from '../layout/Loader'
+
+import MetaData from '../layout/MetaData'
+
+
+
+const Profile = () => {
+
+
+
+    const { user, loading } = useSelector(state => state.auth)
+
+
+
+    return (
+
+        <Fragment>
+
+            {loading ? <Loader /> : (
+
+                <Fragment>
+
+                    <MetaData title={'Your Profile'} />
+
+
+
+                    <h2 className="mt-5 ml-5">My Profile</h2>
+
+                    <div className="row justify-content-around mt-5 user-info">
+
+                        <div className="col-12 col-md-3">
+
+                            <figure className='avatar avatar-profile'>
+
+                                <img className="rounded-circle img-fluid" src={user.avatar.url} alt={user.name} />
+
+                            </figure>
+
+                            <Link to="/me/update" id="edit_profile" className="btn btn-primary btn-block my-5">
+
+                                Edit Profile
+
+                            </Link>
+
+                        </div>
+
+
+
+                        <div className="col-12 col-md-5">
+
+                            <h4>Full Name</h4>
+
+                            <p>{user.name}</p>
+
+
+
+                            <h4>Email Address</h4>
+
+                            <p>{user.email}</p>
+
+
+
+                            <h4>Joined On</h4>
+
+                            <p>{String(user.createdAt).substring(0, 10)}</p>
+
+
+
+                            {user.role !== 'admin' && (
+
+                                <Link to="/orders/me" className="btn btn-danger btn-block mt-5">
+
+                                    My Orders
+
+                                </Link>
+
+                            )}
+
+
+
+                            <Link to="/password/update" className="btn btn-primary btn-block mt-3">
+
+                                Change Password
+
+                            </Link>
+
+                        </div>
+
+                    </div>
+
+                </Fragment>
+
+            )}
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default Profile
+
+
+
+App.js
+
+import Profile from './components/user/Profile'
+
+
+
+<Route path="/me" element={<Profile />} exact="true" />
+
+
+
+route/protectedRoute.js
+
+import React from 'react'
+
+import { Navigate } from 'react-router-dom'
+
+import { useSelector } from 'react-redux'
+
+import Loader from '../layout/Loader'
+
+
+
+const ProtectedRoute = ({ children, isAdmin = false }) => {
+
+
+
+    const { isAuthenticated, loading, user } = useSelector(state => state.auth);
+
+    if (loading === false) {
+
+        if (isAuthenticated === false) {
+
+            return <Navigate to='/login' />
+
+        }
+
+
+
+        if (isAdmin === true && user.role !== 'admin') {
+
+            return <Navigate to='/' />
+
+        }
+
+        return children
+
+    }
+
+    return <Loader />;
+
+
+
+};
+
+export default ProtectedRoute;
+
+
+
+
+
+
+
+
+
+App.js
+
+import ProtectedRoute from './components/route/ProtectedRoute'
+
+
+
+<Route path="/me" element={
+
+            <ProtectedRoute>
+
+              <Profile />
+
+            </ProtectedRoute>
+
+          }
+
+        />
+
+
+
+
+
+userconstants
+
+
+
+export const UPDATE_PROFILE_REQUEST = 'UPDATE_PROFILE_REQUEST'
+
+export const UPDATE_PROFILE_SUCCESS = 'UPDATE_PROFILE_SUCCESS'
+
+export const UPDATE_PROFILE_RESET = 'UPDATE_PROFILE_RESET'
+
+export const UPDATE_PROFILE_FAIL = 'UPDATE_PROFILE_FAIL
+
+
+
+usereducer
+
+UPDATE_PROFILE_REQUEST,
+
+    UPDATE_PROFILE_SUCCESS,
+
+    UPDATE_PROFILE_RESET,
+
+    UPDATE_PROFILE_FAIL,
+
+
+
+
+
+export const userReducer = (state = {}, action) => {
+
+    switch (action.type) {
+
+
+
+        case UPDATE_PROFILE_REQUEST:
+
+            return {
+
+                ...state,
+
+                loading: true
+
+            }
+
+
+
+        case UPDATE_PROFILE_SUCCESS:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                isUpdated: action.payload
+
+            }
+
+
+
+        case UPDATE_PROFILE_RESET:
+
+            return {
+
+                ...state,
+
+                isUpdated: false
+
+            }
+
+
+
+        
+
+        case UPDATE_PROFILE_FAIL:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                error: action.payload
+
+            }
+
+
+
+        case CLEAR_ERRORS:
+
+            return {
+
+                ...state,
+
+                error: null
+
+            }
+
+
+
+        default:
+
+            return state;
+
+    }
+
+}
+
+
+
+useractions
+
+UPDATE_PROFILE_REQUEST,
+
+    UPDATE_PROFILE_SUCCESS,
+
+    UPDATE_PROFILE_FAIL,
+
+
+
+export const updateProfile = (userData) => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: UPDATE_PROFILE_REQUEST })
+
+
+
+        const config = {
+
+            headers: {
+
+                'Content-Type': 'multipart/form-data'
+
+            }
+
+        }
+
+
+
+        const { data } = await axios.put('/api/v1/me/update', userData, config)
+
+
+
+        dispatch({
+
+            type: UPDATE_PROFILE_SUCCESS,
+
+            payload: data.success
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: UPDATE_PROFILE_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+
+
+user/UpdateProfile.js
+
+import React, { Fragment, useState, useEffect } from 'react'
+
+
+
+import MetaData from '../layout/MetaData'
+
+import { useDispatch, useSelector } from 'react-redux'
+
+import { useNavigate } from "react-router-dom";
+
+import { updateProfile, loadUser, clearErrors } from '../../actions/userActions'
+
+import { UPDATE_PROFILE_RESET } from '../../constants/userConstants'
+
+
+
+const UpdateProfile = () => {
+
+
+
+    const [name, setName] = useState('')
+
+    const [email, setEmail] = useState('')
+
+    const [avatar, setAvatar] = useState('')
+
+    const [avatarPreview, setAvatarPreview] = useState('/images/default_avatar.jpg')
+
+
+
+    
+
+    const dispatch = useDispatch();
+
+    let navigate = useNavigate();
+
+
+
+    const { user } = useSelector(state => state.auth);
+
+    const { error, isUpdated, loading } = useSelector(state => state.user)
+
+    // console.log(error)
+
+    useEffect(() => {
+
+        console.log(isUpdated)
+
+        if (user) {
+
+            setName(user.name);
+
+            setEmail(user.email);
+
+            setAvatarPreview(user.avatar.url)
+
+        }
+
+
+
+        if (error) {
+
+            // alert.error(error);
+
+            dispatch(clearErrors());
+
+        }
+
+
+
+        if (isUpdated) {
+
+            // alert.success('User updated successfully')
+
+            dispatch(loadUser());
+
+
+
+            navigate('/me',{ replace: true })
+
+
+
+            dispatch({
+
+                type: UPDATE_PROFILE_RESET
+
+            })
+
+        }
+
+
+
+    }, [dispatch, error, isUpdated, navigate, user])
+
+
+
+    const submitHandler = (e) => {
+
+        e.preventDefault();
+
+
+
+        const formData = new FormData();
+
+        formData.set('name', name);
+
+        formData.set('email', email);
+
+        formData.set('avatar', avatar);
+
+
+
+        dispatch(updateProfile(formData))
+
+    }
+
+
+
+    const onChange = e => {
+
+        const reader = new FileReader();
+
+
+
+        reader.onload = () => {
+
+            if (reader.readyState === 2) {
+
+                setAvatarPreview(reader.result)
+
+                setAvatar(reader.result)
+
+            }
+
+        }
+
+
+
+        reader.readAsDataURL(e.target.files[0])
+
+
+
+    }
+
+    return (
+
+        <Fragment>
+
+            <MetaData title={'Update Profile'} />
+
+
+
+            <div className="row wrapper">
+
+                <div className="col-10 col-lg-5">
+
+                    <form className="shadow-lg" onSubmit={submitHandler} encType='multipart/form-data'>
+
+                        <h1 className="mt-2 mb-5">Update Profile</h1>
+
+
+
+                        <div className="form-group">
+
+                            <label htmlFor="email_field">Name</label>
+
+                            <input
+
+                                type="name"
+
+                                id="name_field"
+
+                                className="form-control"
+
+                                name='name'
+
+                                value={name}
+
+                                onChange={(e) => setName(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <div className="form-group">
+
+                            <label htmlFor="email_field">Email</label>
+
+                            <input
+
+                                type="email"
+
+                                id="email_field"
+
+                                className="form-control"
+
+                                name='email'
+
+                                value={email}
+
+                                onChange={(e) => setEmail(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <div className='form-group'>
+
+                            <label htmlFor='avatar_upload'>Avatar</label>
+
+                            <div className='d-flex align-items-center'>
+
+                                <div>
+
+                                    <figure className='avatar mr-3 item-rtl'>
+
+                                        <img
+
+                                            src={avatarPreview}
+
+                                            className='rounded-circle'
+
+                                            alt='Avatar Preview'
+
+                                        />
+
+                                    </figure>
+
+                                </div>
+
+                                <div className='custom-file'>
+
+                                    <input
+
+                                        type='file'
+
+                                        name='avatar'
+
+                                        className='custom-file-input'
+
+                                        id='customFile'
+
+                                        accept='image/*'
+
+                                        onChange={onChange}
+
+                                    />
+
+                                    <label className='custom-file-label' htmlFor='customFile'>
+
+                                        Choose Avatar
+
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <button type="submit" className="btn update-btn btn-block mt-4 mb-3" disabled={loading ? true : false} >Update</button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default UpdateProfile
+
+
+
+authcontroller
+
+exports.updateProfile = async (req, res, next) => {
+
+    const newUserData = {
+
+        name: req.body.name,
+
+        email: req.body.email
+
+    }
+
+
+
+    // Update avatar
+
+    if (req.body.avatar !== '') {
+
+        const user = await User.findById(req.user.id)
+
+
+
+        const image_id = user.avatar.public_id;
+
+        const res = await cloudinary.uploader.destroy(image_id);
+
+
+
+        const result = await cloudinary.v2.uploader.upload(req.body.avatar, {
+
+            folder: 'avatars',
+
+            width: 150,
+
+            crop: "scale"
+
+        }, (err, res) => {
+
+            console.log(err, res);
+
+        });
+
+
+
+        newUserData.avatar = {
+
+            public_id: result.public_id,
+
+            url: result.secure_url
+
+        }
+
+    }
+
+
+
+    const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+
+        new: true,
+
+        runValidators: true,
+
+        // useFindAndModify: false
+
+    })
+
+
+
+    res.status(200).json({
+
+        success: true
+
+    })
+
+}
+
+routes/auth
+
+router.put('/me/update', isAuthenticatedUser, upload.single("avatar"), updateProfile)
+
+
+
+store
+
+import { authReducer,
+
+         userReducer
+
+       } from './reducers/userReducers'
+
+
+
+const reducer = combineReducers({
+
+    products: productsReducer,
+
+    productDetails: productDetailsReducer,
+
+    auth: authReducer,
+
+    user: userReducer,
+
+
+
+})
+
+
+
+app.js
+
+import UpdateProfile from './components/user/UpdateProfile';
+
+<Route
+
+          path="/me/update"
+
+          element={
+
+            <ProtectedRoute>
+
+              <UpdateProfile />
+
+            </ProtectedRoute>
+
+          }
+
+          exact="true"
+
+        />
+
+
+
+userconstants
+
+export const UPDATE_PASSWORD_REQUEST = 'UPDATE_PASSWORD_REQUEST'
+
+export const UPDATE_PASSWORD_SUCCESS = 'UPDATE_PASSWORD_SUCCESS'
+
+export const UPDATE_PASSWORD_RESET = 'UPDATE_PASSWORD_RESET'
+
+export const UPDATE_PASSWORD_FAIL = 'UPDATE_PASSWORD_FAIL'
+
+
+
+userreducers
+
+UPDATE_PASSWORD_REQUEST,
+
+    UPDATE_PASSWORD_SUCCESS,
+
+    UPDATE_PASSWORD_RESET,
+
+    UPDATE_PASSWORD_FAIL,
+
+
+
+case UPDATE_PASSWORD_REQUEST:
+
+        case UPDATE_USER_REQUEST:
+
+        case DELETE_USER_REQUEST:
+
+            return {
+
+                ...state,
+
+                loading: true
+
+            }
+
+
+
+ case UPDATE_PROFILE_SUCCESS:
+
+        case UPDATE_PASSWORD_SUCCESS:
+
+        case UPDATE_USER_SUCCESS:
+
+case UPDATE_PROFILE_RESET:
+
+        case UPDATE_PASSWORD_RESET:
+
+        case UPDATE_USER_RESET:
+
+
+
+
+
+case UPDATE_PASSWORD_FAIL:
+
+
+
+userActions
+
+UPDATE_PASSWORD_REQUEST,
+
+    UPDATE_PASSWORD_SUCCESS,
+
+    UPDATE_PASSWORD_FAIL,
+
+
+
+    // Update password
+
+export const updatePassword = (passwords) => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: UPDATE_PASSWORD_REQUEST })
+
+
+
+        const config = {
+
+            headers: {
+
+                'Content-Type': 'application/json'
+
+            }
+
+        }
+
+
+
+        const { data } = await axios.put('/api/v1/password/update', passwords, config)
+
+
+
+        dispatch({
+
+            type: UPDATE_PASSWORD_SUCCESS,
+
+            payload: data.success
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: UPDATE_PASSWORD_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+
+
+components user UpdatePassword
+
+import React, { Fragment, useState, useEffect } from 'react'
+
+import { useNavigate } from "react-router-dom";
+
+import MetaData from '../layout/MetaData'
+
+import { toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.css';
+
+
+
+
+
+import { useDispatch, useSelector } from 'react-redux'
+
+import { updatePassword, clearErrors } from '../../actions/userActions'
+
+import { UPDATE_PASSWORD_RESET } from '../../constants/userConstants'
+
+
+
+const UpdatePassword = () => {
+
+
+
+    const [oldPassword, setOldPassword] = useState('')
+
+    const [password, setPassword] = useState('')
+
+    const dispatch = useDispatch();
+
+    let navigate = useNavigate();
+
+
+
+    const { error, isUpdated, loading } = useSelector(state => state.user)
+
+
+
+    const success = (message='' ) => toast.success(message, {
+
+        position: toast.POSITION.BOTTOM_CENTER
+
+    });
+
+    const notify = (error='' ) => toast.error(error, {
+
+        position: toast.POSITION.BOTTOM_CENTER
+
+    });
+
+
+
+    useEffect(() => {
+
+
+
+        if (error) {
+
+            console.log(error)
+
+            notify(error)
+
+            dispatch(clearErrors());
+
+        }
+
+
+
+        if (isUpdated) {
+
+            
+
+            success('Password updated successfully')
+
+            navigate('/me')
+
+            dispatch({
+
+                type: UPDATE_PASSWORD_RESET
+
+            })
+
+        }
+
+
+
+    }, [dispatch,  error, navigate, isUpdated])
+
+
+
+    const submitHandler = (e) => {
+
+        e.preventDefault();
+
+
+
+        const formData = new FormData();
+
+        formData.set('oldPassword', oldPassword);
+
+        formData.set('password', password);
+
+
+
+        dispatch(updatePassword(formData))
+
+    }
+
+
+
+    return (
+
+        <Fragment>
+
+            <MetaData title={'Change Password'} />
+
+
+
+            <div className="row wrapper">
+
+                <div className="col-10 col-lg-5">
+
+                    <form className="shadow-lg" onSubmit={submitHandler}>
+
+                        <h1 className="mt-2 mb-5">Update Password</h1>
+
+                        <div className="form-group">
+
+                            <label htmlFor="old_password_field">Old Password</label>
+
+                            <input
+
+                                type="password"
+
+                                id="old_password_field"
+
+                                className="form-control"
+
+                                value={oldPassword}
+
+                                onChange={(e) => setOldPassword(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <div className="form-group">
+
+                            <label htmlFor="new_password_field">New Password</label>
+
+                            <input
+
+                                type="password"
+
+                                id="new_password_field"
+
+                                className="form-control"
+
+                                value={password}
+
+                                onChange={(e) => setPassword(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <button type="submit" className="btn update-btn btn-block mt-4 mb-3" disabled={loading ? true : false} >Update Password</button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default UpdatePassword
+
+
+
+
+
+
+
+app.js
+
+import UpdatePassword from './components/user/UpdatePassword'
+
+ <Route path="/password/update" 
+
+                    element={
+
+                     <ProtectedRoute >
+
+                         <UpdatePassword />
+
+                     </ProtectedRoute> } exact="true" />
+
+
+
+authcontroller
+
+exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
+
+    const user = await User.findById(req.user.id).select('+password');
+
+
+
+    // Check previous user password
+
+    const isMatched = await user.comparePassword(req.body.oldPassword)
+
+    if (!isMatched) {
+
+        return next(new ErrorHandler('Old password is incorrect'));
+
+    }
+
+
+
+    user.password = req.body.password;
+
+    await user.save();
+
+
+
+    sendToken(user, 200, res)
+
+
+
+})
+
+
+
+useractions
+
+export const updatePassword = (passwords) => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: UPDATE_PASSWORD_REQUEST })
+
+
+
+        const config = {
+
+            headers: {
+
+                'Content-Type': 'application/json'
+
+            }
+
+        }
+
+
+
+        const { data } = await axios.put('/api/v1/password/update', passwords, config)
+
+
+
+        dispatch({
+
+            type: UPDATE_PASSWORD_SUCCESS,
+
+            payload: data.success
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: UPDATE_PASSWORD_FAIL,
+
+            payload: error.response.data.errMessage
+
+        })
+
+        
+
+    }
+
+}
+
+
+
+userconstants
+
+export const FORGOT_PASSWORD_REQUEST = 'FORGOT_PASSWORD_REQUEST'
+
+export const FORGOT_PASSWORD_SUCCESS = 'FORGOT_PASSWORD_SUCCESS'
+
+export const FORGOT_PASSWORD_FAIL = 'FORGOT_PASSWORD_FAIL'
+
+
+
+userReducers
+
+FORGOT_PASSWORD_REQUEST,
+
+    FORGOT_PASSWORD_SUCCESS,
+
+    FORGOT_PASSWORD_FAIL,
+
+
+
+export const forgotPasswordReducer = (state = {}, action) => {
+
+    switch (action.type) {
+
+
+
+        case FORGOT_PASSWORD_REQUEST:
+
+        case NEW_PASSWORD_REQUEST:
+
+            return {
+
+                ...state,
+
+                loading: true,
+
+                error: null
+
+            }
+
+
+
+        case FORGOT_PASSWORD_SUCCESS:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                message: action.payload
+
+            }
+
+
+
+        case NEW_PASSWORD_SUCCESS:
+
+            return {
+
+                ...state,
+
+                success: action.payload
+
+            }
+
+
+
+        case FORGOT_PASSWORD_FAIL:
+
+        case NEW_PASSWORD_FAIL:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                error: action.payload
+
+            }
+
+
+
+        case CLEAR_ERRORS:
+
+            return {
+
+                ...state,
+
+                error: null
+
+            }
+
+
+
+        default:
+
+            return state;
+
+    }
+
+}
+
+
+
+store
+
+import { authReducer, userReducer, forgotPasswordReducer, allUsersReducer, userDetailsReducer } from './reducers/userReducers'
+
+
+
+const reducer = combineReducers({
+
+    products: productsReducer,
+
+    productDetails: productDetailsReducer,
+
+    auth: authReducer,
+
+    user: userReducer,
+
+    forgotPassword: forgotPasswordReducer,
+
+    
+
+})
+
+
+
+usractions
+
+FORGOT_PASSWORD_REQUEST,
+
+    FORGOT_PASSWORD_SUCCESS,
+
+    FORGOT_PASSWORD_FAIL,
+
+
+
+// Forgot password
+
+export const forgotPassword = (email) => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: FORGOT_PASSWORD_REQUEST })
+
+
+
+        const config = {
+
+            headers: {
+
+                'Content-Type': 'application/json'
+
+            }
+
+        }
+
+
+
+        const { data } = await axios.post('/api/v1/password/forgot', email, config)
+
+
+
+        dispatch({
+
+            type: FORGOT_PASSWORD_SUCCESS,
+
+            payload: data.message
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: FORGOT_PASSWORD_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+
+
+user/ForgotPassword
+
+import React, { Fragment, useState, useEffect } from 'react'
+
+import MetaData from '../layout/MetaData'
+
+import { useDispatch, useSelector } from 'react-redux'
+
+import { toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.css';
+
+import { forgotPassword, clearErrors } from '../../actions/userActions'
+
+
+
+const ForgotPassword = () => {
+
+    const [email, setEmail] = useState('')
+
+    const dispatch = useDispatch();
+
+    const { error, loading, message } = useSelector(state => state.forgotPassword)
+
+    const success = (message='' ) => toast.success(message, {
+
+        position: toast.POSITION.BOTTOM_CENTER
+
+    });
+
+    const notify = (error='' ) => toast.error(error, {
+
+        position: toast.POSITION.BOTTOM_CENTER
+
+    });
+
+    useEffect(() => {
+
+
+
+        if (error) {
+
+            notify(error);
+
+            dispatch(clearErrors());
+
+        }
+
+
+
+        if (message) {
+
+            success(message)
+
+        }
+
+
+
+    }, [dispatch, error, message])
+
+
+
+    const submitHandler = (e) => {
+
+        e.preventDefault();
+
+
+
+        const formData = new FormData();
+
+        formData.set('email', email);
+
+
+
+        dispatch(forgotPassword(formData))
+
+    }
+
+
+
+    return (
+
+        <Fragment>
+
+            <MetaData title={'Forgot Password'} />
+
+
+
+            <div className="row wrapper">
+
+                <div className="col-10 col-lg-5">
+
+                    <form className="shadow-lg" onSubmit={submitHandler}>
+
+                        <h1 className="mb-3">Forgot Password</h1>
+
+                        <div className="form-group">
+
+                            <label htmlFor="email_field">Enter Email</label>
+
+                            <input
+
+                                type="email"
+
+                                id="email_field"
+
+                                className="form-control"
+
+                                value={email}
+
+                                onChange={(e) => setEmail(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <button
+
+                            id="forgot_password_button"
+
+                            type="submit"
+
+                            className="btn btn-block py-3"
+
+                            disabled={loading ? true : false} >
+
+                            Send Email
+
+                    </button>
+
+
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default ForgotPassword
+
+
+
+app.js
+
+import ForgotPassword from './components/user/ForgotPassword'
+
+<Route path="/password/forgot" element={<ForgotPassword />} exact="true" />
+
+
+
+constants
+
+export const NEW_PASSWORD_REQUEST = 'NEW_PASSWORD_REQUEST'
+
+export const NEW_PASSWORD_SUCCESS = 'NEW_PASSWORD_SUCCESS'
+
+export const NEW_PASSWORD_FAIL = 'NEW_PASSWORD_FAIL'
+
+
+
+userreducers
+
+NEW_PASSWORD_REQUEST,
+
+    NEW_PASSWORD_SUCCESS,
+
+    NEW_PASSWORD_FAIL,
+
+
+
+export const forgotPasswordReducer = (state = {}, action) => {
+
+    switch (action.type) {
+
+
+
+        case FORGOT_PASSWORD_REQUEST:
+
+        case NEW_PASSWORD_REQUEST:
+
+            return {
+
+                ...state,
+
+                loading: true,
+
+                error: null
+
+            }
+
+
+
+        case FORGOT_PASSWORD_SUCCESS:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                message: action.payload
+
+            }
+
+
+
+        case NEW_PASSWORD_SUCCESS:
+
+            return {
+
+                ...state,
+
+                success: action.payload
+
+            }
+
+
+
+        case FORGOT_PASSWORD_FAIL:
+
+        case NEW_PASSWORD_FAIL:
+
+            return {
+
+                ...state,
+
+                loading: false,
+
+                error: action.payload
+
+            }
+
+
+
+        case CLEAR_ERRORS:
+
+            return {
+
+                ...state,
+
+                error: null
+
+            }
+
+
+
+        default:
+
+            return state;
+
+    }
+
+}
+
+
+
+useractions
+
+NEW_PASSWORD_REQUEST,
+
+    NEW_PASSWORD_SUCCESS,
+
+    NEW_PASSWORD_FAIL,
+
+
+
+// Reset password
+
+export const resetPassword = (token, passwords) => async (dispatch) => {
+
+    try {
+
+
+
+        dispatch({ type: NEW_PASSWORD_REQUEST })
+
+
+
+        const config = {
+
+            headers: {
+
+                'Content-Type': 'application/json'
+
+            }
+
+        }
+
+
+
+        const { data } = await axios.put(`/api/v1/password/reset/${token}`, passwords, config)
+
+
+
+        dispatch({
+
+            type: NEW_PASSWORD_SUCCESS,
+
+            payload: data.success
+
+        })
+
+
+
+    } catch (error) {
+
+        dispatch({
+
+            type: NEW_PASSWORD_FAIL,
+
+            payload: error.response.data.message
+
+        })
+
+    }
+
+}
+
+user/newpassowrd.js
+
+
+
+import React, { Fragment, useState, useEffect } from 'react'
+
+import { useNavigate, useParams } from "react-router-dom";
+
+import MetaData from '../layout/MetaData'
+
+
+
+import { useDispatch, useSelector } from 'react-redux'
+
+import { resetPassword, clearErrors } from '../../actions/userActions'
+
+
+
+const NewPassword = () => {
+
+
+
+    const [password, setPassword] = useState('')
+
+    const [confirmPassword, setConfirmPassword] = useState('')
+
+    const dispatch = useDispatch();
+
+    let navigate = useNavigate();
+
+
+
+    const { error, success } = useSelector(state => state.forgotPassword)
+
+    let { token } = useParams();
+
+
+
+    useEffect(() => {
+
+        if (error) {
+
+            // alert.error(error);
+
+            dispatch(clearErrors());
+
+        }
+
+
+
+        if (success) {
+
+            // alert.success('Password updated successfully')
+
+            navigate('/login')
+
+        }
+
+
+
+    }, [dispatch,  error, success, navigate])
+
+
+
+    const submitHandler = (e) => {
+
+        e.preventDefault();
+
+
+
+        const formData = new FormData();
+
+        formData.set('password', password);
+
+        formData.set('confirmPassword', confirmPassword);
+
+
+
+        dispatch(resetPassword(token, formData))
+
+    }
+
+
+
+    return (
+
+        <Fragment>
+
+
+
+            <MetaData title={'New Password Reset'} />
+
+
+
+            <div className="row wrapper">
+
+                <div className="col-10 col-lg-5">
+
+                    <form className="shadow-lg" onSubmit={submitHandler}>
+
+                        <h1 className="mb-3">New Password</h1>
+
+
+
+                        <div className="form-group">
+
+                            <label htmlFor="password_field">Password</label>
+
+                            <input
+
+                                type="password"
+
+                                id="password_field"
+
+                                className="form-control"
+
+                                value={password}
+
+                                onChange={(e) => setPassword(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <div className="form-group">
+
+                            <label htmlFor="confirm_password_field">Confirm Password</label>
+
+                            <input
+
+                                type="password"
+
+                                id="confirm_password_field"
+
+                                className="form-control"
+
+                                value={confirmPassword}
+
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+
+                            />
+
+                        </div>
+
+
+
+                        <button
+
+                            id="new_password_button"
+
+                            type="submit"
+
+                            className="btn btn-block py-3">
+
+                            Set Password
+
+                        </button>
+
+
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+
+        </Fragment>
+
+    )
+
+}
+
+
+
+export default NewPassword
+
+
+
+
+
+authcontroller
+
+exports.forgotPassword = async (req, res, next) => {
+
+
+
+    const user = await User.findOne({ email: req.body.email });
+
+
+
+    if (!user) {
+
+        return next(new ErrorHandler('User not found with this email', 404));
+
+    }
+
+
+
+    // Get reset token
+
+    const resetToken = user.getResetPasswordToken();
+
+
+
+    await user.save({ validateBeforeSave: false });
+
+
+
+    // Create reset password url
+
+    // const resetUrl = `${req.protocol}://${req.get('host')}/password/reset/${resetToken}`;
+
+    const resetUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`;
+
+
+
+    const message = `<p>Your password reset token is as follow:\n\n<a href="${resetUrl}">Reset Password</a>\n\nIf you have not requested this email, then ignore it.</p>`
+
+    const html =  `<p>Your password reset token is as follow:\n\n<a href="${resetUrl}">Reset Password</a>\n\nIf you have not requested this email, then ignore it.</p>`
+
+    try {
+
+
+
+        await sendEmail({
+
+            email: user.email,
+
+            subject: 'ShopIT Password Recovery',
+
+            message,
+
+            html
+
+             
+
+        })
+
+
+
+        res.status(200).json({
+
+            success: true,
+
+            message: `Email sent to: ${user.email}`
+
+        })
+
+
+
+    } catch (error) {
+
+        user.resetPasswordToken = undefined;
+
+        user.resetPasswordExpire = undefined;
+
+
+
+        await user.save({ validateBeforeSave: false });
+
+
+
+        return next(new ErrorHandler(error.message, 500))
+
+    }
+
+
+
+}
+
+
+
+exports.resetPassword = async (req, res, next) => {
+
+
+
+    // Hash URL token
+
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex')
+
+
+
+    const user = await User.findOne({
+
+        resetPasswordToken,
+
+        resetPasswordExpire: { $gt: Date.now() }
+
+    })
+
+
+
+    if (!user) {
+
+        return next(new ErrorHandler('Password reset token is invalid or has been expired', 400))
+
+    }
+
+
+
+    if (req.body.password !== req.body.confirmPassword) {
+
+        return next(new ErrorHandler('Password does not match', 400))
+
+    }
+
+
+
+    // Setup new password
+
+    user.password = req.body.password;
+
+
+
+    user.resetPasswordToken = undefined;
+
+    user.resetPasswordExpire = undefined;
+
+
+
+    await user.save();
+
+
+
+    sendToken(user, 200, res);
+
+
+
+}
+
+
+
+utils/sendEmail
+
+const message = {
+
+        from: `${process.env.SMTP_FROM_NAME} <${process.env.SMTP_FROM_EMAIL}>`,
+
+        to: options.email,
+
+        subject: options.subject,
+
+        text: options.message,
+
+        html: options.html
+
+    }
+
+
+
+app.js
+
+import NewPassword from './components/user/NewPassword'
+
+
+
+<Route path="/password/reset/:token" element={<NewPassword />} exact="true" />
+
+
+
+config.env
+
+FRONTEND_URL = http://localhost:3000
+
+
+
+authcontroller/forgotpassword
+
+const resetUrl = `${process.env.FRONTEND_URL}/password/reset/${resetToken}`;
+
+
+
+comp/product/productDetails
+
+
+
+import React, { Fragment, useState, useEffect } from 'react'
+
+const [quantity, setQuantity] = useState(1)
+
+ const increaseQty = () => {
+
+        const count = document.querySelector('.count')
+
+
+
+        if (count.valueAsNumber >= product.stock) return;
+
+
+
+        const qty = count.valueAsNumber + 1;
+
+        setQuantity(qty)
+
+    }
+
+
+
+    const decreaseQty = () => {
+
+
+
+        const count = document.querySelector('.count')
+
+
+
+        if (count.valueAsNumber <= 1) return;
+
+
+
+        const qty = count.valueAsNumber - 1;
+
+        setQuantity(qty)
+
+
+
+    }
+
+
+
+   return (
+
+        <Fragment>
+
+            {loading ? <Loader /> : (
+
+                <Fragment>
+
+                    <MetaData title={product.name} />
+
+                    <div className="row d-flex justify-content-around">
+
+                        <div className="col-12 col-lg-5 img-fluid" id="product_image">
+
+                            <Carousel pause='hover'>
+
+                                {product.images && product.images.map(image => (
+
+                                    <Carousel.Item key={image.public_id}>
+
+                                        <img className="d-block w-100" src={image.url} alt={product.title} />
+
+                                    </Carousel.Item>
+
+                                ))}
+
+                            </Carousel>
+
+                        </div>
+
+
+
+                        <div className="col-12 col-lg-5 mt-5">
+
+                            <h3>{product.name}</h3>
+
+                            <p id="product_id">Product # {product._id}</p>
+
+
+
+                            <hr />
+
+
+
+                            <div className="rating-outer">
+
+                                <div className="rating-inner" style={{ width: `${(product.ratings / 5) * 100}%` }}></div>
+
+                            </div>
+
+                            <span id="no_of_reviews">({product.numOfReviews} Reviews)</span>
+
+
+
+                            <hr />
+
+
+
+                            <p id="product_price">${product.price}</p>
+
+                            <div className="stockCounter d-inline">
+
+                                <span className="btn btn-danger minus" onClick={decreaseQty}>-</span>
+
+                                
+
+                                <input type="number" className="form-control count d-inline" value={quantity} readOnly />
+
+                              
+
+                                <span className="btn btn-primary plus" onClick={increaseQty}>+</span>
+
+
+
+                            </div>
+
+                            <button type="button" id="cart_btn" className="btn btn-primary d-inline ml-4"  >Add to Cart</button>
+
+                            <hr />
+
+
+
+                            <p>Status: <span id="stock_status" className={product.stock > 0 ? 'greenColor' : 'redColor'} >{product.stock > 0 ? 'In Stock' : 'Out of Stock'}</span></p>
+
+
+
+                            <hr />
+
+
+
+                            <h4 className="mt-2">Description:</h4>
+
+                            <p>{product.description}</p>
+
+                            <hr />
+
+                            <p id="product_seller mb-3">Sold by: <strong>{product.seller}</strong></p>
+
+
+
+                            <button id="review_btn" type="button" className="btn btn-primary mt-4" data-toggle="modal" data-target="#ratingModal" >
+
+                                Submit Your Review
+
+                            </button>
+
+
+
+                            <div className="alert alert-danger mt-5" type='alert'>Login to post your review.</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            <div className="row mt-2 mb-5">
+
+                                <div className="rating w-50">
+
+
+
+                                    <div className="modal fade" id="ratingModal" tabIndex="-1" role="dialog" aria-labelledby="ratingModalLabel" aria-hidden="true">
+
+                                        <div className="modal-dialog" role="document">
+
+                                            <div className="modal-content">
+
+                                                <div className="modal-header">
+
+                                                    <h5 className="modal-title" id="ratingModalLabel">Submit Review</h5>
+
+                                                    <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+
+                                                        <span aria-hidden="true">&times;</span>
+
+                                                    </button>
+
+                                                </div>
+
+                                                <div className="modal-body">
+
+
+
+                                                    <ul className="stars" >
+
+                                                        <li className="star"><i className="fa fa-star"></i></li>
+
+                                                        <li className="star"><i className="fa fa-star"></i></li>
+
+                                                        <li className="star"><i className="fa fa-star"></i></li>
+
+                                                        <li className="star"><i className="fa fa-star"></i></li>
+
+                                                        <li className="star"><i className="fa fa-star"></i></li>
+
+                                                    </ul>
+
+
+
+                                                    <textarea
+
+                                                        name="review"
+
+                                                        id="review" className="form-control mt-3"
+
+                                                    >
+
+
+
+                                                    </textarea>
+
+
+
+
+
+
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+
+
+
+                                </div>
+
+                            </div>
+
+
+
+                        </div>
+
+                    </div>
+
+                </Fragment>
+
+            )}
+
+        </Fragment>
+
+    )
+
+
+
+models/order
+
+const mongoose = require('mongoose')
+
+
+
+const orderSchema = mongoose.Schema({
+
+    shippingInfo: {
+
+        address: {
+
+            type: String,
+
+            required: true
+
+        },
+
+        city: {
+
+            type: String,
+
+            required: true
+
+        },
+
+        phoneNo: {
+
+            type: String,
+
+            required: true
+
+        },
+
+        postalCode: {
+
+            type: String,
+
+            required: true
+
+        },
+
+        country: {
+
+            type: String,
+
+            required: true
+
+        }
+
+    },
+
+    user: {
+
+        type: mongoose.Schema.Types.ObjectId,
+
+        required: true,
+
+        ref: 'User'
+
+    },
+
+    orderItems: [
+
+        {
+
+            name: {
+
+                type: String,
+
+                required: true
+
+            },
+
+            quantity: {
+
+                type: Number,
+
+                required: true
+
+            },
+
+            image: {
+
+                type: String,
+
+                required: true
+
+            },
+
+            price: {
+
+                type: Number,
+
+                required: true
+
+            },
+
+            product: {
+
+                type: mongoose.Schema.Types.ObjectId,
+
+                required: true,
+
+                ref: 'Product'
+
+            }
+
+        }
+
+    ],
+
+    paymentInfo: {
+
+        id: {
+
+            type: String
+
+        },
+
+        status: {
+
+            type: String
+
+        }
+
+    },
+
+    paidAt: {
+
+        type: Date
+
+    },
+
+
+
+    itemsPrice: {
+
+        type: Number,
+
+        required: true,
+
+        default: 0.0
+
+    },
+
+    taxPrice: {
+
+        type: Number,
+
+        required: true,
+
+        default: 0.0
+
+    },
+
+    shippingPrice: {
+
+        type: Number,
+
+        required: true,
+
+        default: 0.0
+
+    },
+
+    totalPrice: {
+
+        type: Number,
+
+        required: true,
+
+        default: 0.0
+
+    },
+
+    orderStatus: {
+
+        type: String,
+
+        required: true,
+
+        default: 'Processing'
+
+    },
+
+    deliveredAt: {
+
+        type: Date
+
+    },
+
+    createdAt: {
+
+        type: Date,
+
+        default: Date.now
+
+    }
+
+
+
+})
+
+
+
+module.exports = mongoose.model('Order', orderSchema)
+
+
+
+ordercontroller
+
+const Order = require('../models/order');
+
+const Product = require('../models/product');
+
+
+
+const ErrorHandler = require('../utils/errorHandler');
+
+
+
+// Create a new order   =>  /api/v1/order/new
+
+exports.newOrder = async (req, res, next) => {
+
+    const {
+
+        orderItems,
+
+        shippingInfo,
+
+        itemsPrice,
+
+        taxPrice,
+
+        shippingPrice,
+
+        totalPrice,
+
+        paymentInfo
+
+
+
+    } = req.body;
+
+
+
+    const order = await Order.create({
+
+        orderItems,
+
+        shippingInfo,
+
+        itemsPrice,
+
+        taxPrice,
+
+        shippingPrice,
+
+        totalPrice,
+
+        paymentInfo,
+
+        paidAt: Date.now(),
+
+        user: req.user._id
+
+    })
+
+
+
+    res.status(200).json({
+
+        success: true,
+
+        order
+
+    })
+
+}
+
+
+
+routes/order
+
+const express = require('express')
+
+const router = express.Router();
+
+
+
+const { newOrder,
+
+		getSingleOrder,
+
+	    myOrders,
+
+	    allOrders,
+
+	    updateOrder,
+
+	    deleteOrder
+
+	} = require('../controllers/orderController')
+
+const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth')
+
+
+
+router.route('/order/new').post(isAuthenticatedUser, newOrder);
+
+
+
+module.exports = router;
+
+
+
+app.js
+
+const order = require('./routes/order');
+
+app.use('/api/v1', order);
+
+
+
+order sample
+
+  "shippingInfo": {
+
+        "address": "blc tenement",
+
+        "city": "taguig",
+
+        "phoneNo": "8389889",
+
+        "postalCode":"4196",
+
+        "country": "philippines"
+
+    },
+
+    "user": "63e462117953b28310837bdc",
+
+    "orderItems": [
+
+        {
+
+            "name": "CHARMOUNT Full Motion TV Wall Mount Swivel",
+
+            "quantity": 1,
+
+            "image": "",
+
+            "price": 26.99,
+
+            "product": "63f1f177c227e3ff0fab9ad2"
+
+        }
+
+    ],
+
+    "paymentInfo": {
+
+        "id": 123456,
+
+        "status": "pending"
+
+    },
+
+    "paidAt": "2023-02-27T01:50:09.246Z",
+
+
+
+    "itemsPrice": 26.99,
+
+    "taxPrice": 10.00,
+
+    "shippingPrice": 12.50,
+
+    "totalPrice":26.99,
+
+    "orderStatus": "Processing",
+
+    "deliveredAt": "2023-02-28T01:50:09.246Z",
+
+
+
+ordercontroller
+
+exports.getSingleOrder = async (req, res, next) => {
+
+    const order = await Order.findById(req.params.id).populate('user', 'name email')
+
+
+
+    if (!order) {
+
+        return next(new ErrorHandler('No Order found with this ID', 404))
+
+    }
+
+
+
+    res.status(200).json({
+
+        success: true,
+
+        order
+
+    })
+
+}
+
+
+
+routes/order
+
+router.route('/order/:id').get(isAuthenticatedUser, getSingleOrder);
+
+
+
+ordecontroller
+
+exports.myOrders = async (req, res, next) => {
+
+    const orders = await Order.find({ user: req.user._id })
+
+// console.log(req.user)
+
+    res.status(200).json({
+
+        success: true,
+
+        orders
+
+    })
+
+}
+
+
+
+routes/order
+
+router.route('/orders/me').get(isAuthenticatedUser, myOrders);
+
+
+
+admin all order /api/v1/admin/orders/
+
+exports.allOrders = async (req, res, next) => {
+
+    const orders = await Order.find()
+
+    // console.log(orders)
+
+    let totalAmount = 0;
+
+
+
+    orders.forEach(order => {
+
+
+
+        totalAmount += order.totalPrice
+
+    })
+
+
+
+    res.status(200).json({
+
+        success: true,
+
+        totalAmount,
+
+        orders
+
+    })
+
+}
+
+
+
+routes/order
+
+router.route('/admin/orders/').get(isAuthenticatedUser, authorizeRoles('admin'), allOrders);
+
+
+
+ordercontroller
+
+exports.updateOrder = async (req, res, next) => {
+
+    const order = await Order.findById(req.params.id)
+
+
+
+    if (order.orderStatus === 'Delivered') {
+
+        return next(new ErrorHandler('You have already delivered this order', 400))
+
+    }
+
+
+
+    order.orderItems.forEach(async item => {
+
+        await updateStock(item.product, item.quantity)
+
+    })
+
+
+
+    order.orderStatus = req.body.status,
+
+        order.deliveredAt = Date.now()
+
+
+
+    await order.save()
+
+
+
+    res.status(200).json({
+
+        success: true,
+
+    })
+
+}
+
+async function updateStock(id, quantity) {
+
+    const product = await Product.findById(id);
+
+
+
+    product.stock = product.stock - quantity;
+
+
+
+    await product.save({ validateBeforeSave: false })
+
+}
+
+
+
+routes/order
+
+router.route('/admin/order/:id').put(isAuthenticatedUser, authorizeRoles('admin'), updateOrder)
+
+
+
+ordercontroller
+
+exports.deleteOrder = async (req, res, next) => {
+
+    const order = await Order.findById(req.params.id)
+
+
+
+    if (!order) {
+
+        return next(new ErrorHandler('No Order found with this ID', 404))
+
+    }
+
+
+
+    await order.remove()
+
+
+
+    res.status(200).json({
+
+        success: true
+
+    })
+
+}
+
+
+
+routes/order
+
+.delete(isAuthenticatedUser, authorizeRoles('admin'), deleteOrder);
+
+Last modified: Tuesday, 28 February 2023, 8:49 AM
