@@ -25,7 +25,11 @@ const Login = () => {
 
   let location = useLocation();
 
-  const redirect = location.search ? location.search.split("=")[1] : "/";
+  // const redirect = location.search ? location.search.split("=")[1] : "/";
+
+  const redirect = location.search
+    ? new URLSearchParams(location.search).get("redirect")
+    : "";
 
   const { isAuthenticated, error, loading } = useSelector(
     (state) => state.auth

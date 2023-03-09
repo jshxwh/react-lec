@@ -7,9 +7,32 @@ import MetaData from "../layout/MetaData";
 
 import { useDispatch, useSelector } from "react-redux";
 import { getProductDetails, clearErrors } from "../../actions/productActions";
+import { addItemToCart } from "../../actions/cartActions";
+
+import { toast } from "react-toastify";
+
+import "react-toastify/dist/ReactToastify.css";
 
 const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
+
+  const notify = (message = "") =>
+    toast.success(message, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+    });
+
+  const addToCart = () => {
+    dispatch(addItemToCart(id, quantity));
+
+    notify("Item Added to Cart");
+  };
 
   const dispatch = useDispatch();
 
@@ -112,6 +135,8 @@ const ProductDetails = () => {
                 type="button"
                 id="cart_btn"
                 className="btn btn-primary d-inline ml-4"
+                disabled={product.stock === 0}
+                onClick={addToCart}
               >
                 Add to Cart
               </button>
