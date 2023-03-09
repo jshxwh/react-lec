@@ -10,6 +10,8 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { createOrder, clearErrors } from "../../actions/orderActions";
 
+import { clearCart } from "../../actions/cartActions";
+
 import { toast } from "react-toastify";
 
 import "react-toastify/dist/ReactToastify.css";
@@ -75,7 +77,9 @@ const Payment = () => {
     };
 
     dispatch(createOrder(order));
-
+    dispatch(clearCart());
+    sessionStorage.clear();
+    localStorage.clear();
     navigate("/success");
   };
 
