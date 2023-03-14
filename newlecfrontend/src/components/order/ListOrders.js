@@ -35,6 +35,13 @@ const ListOrders = () => {
 
           sort: "asc",
         },
+        {
+          label: "Item Name",
+
+          field: "name",
+
+          sort: "asc",
+        },
 
         {
           label: "Num of Items",
@@ -75,6 +82,8 @@ const ListOrders = () => {
     orders.forEach((order) => {
       data.rows.push({
         id: order._id,
+
+        name: order.orderItems.name,
 
         numOfItems: order.orderItems.length,
 

@@ -14,6 +14,8 @@ const {
   getSingleProduct,
   updateProduct,
   deleteProduct,
+  createProductReview,
+  getProductReviews,
 } = require("../controllers/productController");
 
 // router.get("/products", isAuthenticatedUser, getProducts);
@@ -22,6 +24,8 @@ router.route("/products").get(getProducts);
 router.route("/product/new").post(newProduct);
 router.route("/product/:id").get(getSingleProduct);
 router.route("/admin/product/:id").put(updateProduct).delete(deleteProduct);
+router.put("/review", isAuthenticatedUser, createProductReview);
+router.get("/reviews", isAuthenticatedUser, getProductReviews);
 
 // router.get(
 //   "/products",

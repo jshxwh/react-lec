@@ -1,1224 +1,144 @@
-cartConstants
-
-export const ADD_TO_CART = 'ADD_TO_CART'
-
-export const REMOVE_ITEM_CART = 'REMOVE_ITEM_CART'
-
-export const SAVE_SHIPPING_INFO = 'SAVE_SHIPPING_INFO'
+exports.createProductReview = async (req, res, next) => {
 
 
 
-cartreducers
-
-import { ADD_TO_CART } from '../constants/cartConstants'
+    const { rating, comment, productId } = req.body;
 
 
 
-export const cartReducer = (state = { cartItems: [],  }, action) => {
+    const review = {
 
-    console.log(state.cartItems)
+        user: req.user._id,
+
+        name: req.user.name,
+
+        rating: Number(rating),
+
+        comment
+
+    }
+
+
+
+    const product = await Product.findById(productId);
+
+
+
+    const isReviewed = product.reviews.find(
+
+        r => r.user.toString() === req.user._id.toString()
+
+    )
+
+
+
+    if (isReviewed) {
+
+        product.reviews.forEach(review => {
+
+            if (review.user.toString() === req.user._id.toString()) {
+
+                review.comment = comment;
+
+                review.rating = rating;
+
+            }
+
+        })
+
+
+
+    } else {
+
+        product.reviews.push(review);
+
+        product.numOfReviews = product.reviews.length
+
+    }
+
+
+
+    product.ratings = product.reviews.reduce((acc, item) => item.rating + acc, 0) / product.reviews.length
+
+
+
+    await product.save({ validateBeforeSave: false });
+
+
+
+    res.status(200).json({
+
+        success: true
+
+    })
+
+
+
+}
+
+routes/product
+
+const { getProducts,
+
+    newProduct,
+
+    getSingleProduct,
+
+    updateProduct,
+
+    deleteProduct,
+
+    createProductReview,
+
+} = require('../controllers/productController');
+
+router.put('/review',isAuthenticatedUser, createProductReview);
+
+{
+
+		"productId": "63f1f177c227e3ff0fab9ad3",
+
+        "rating": 4,
+
+        "comment": "nice product"
+
+}
+
+review
+
+productconstants
+
+export const NEW_REVIEW_REQUEST = 'NEW_REVIEW_REQUEST'
+
+export const NEW_REVIEW_SUCCESS = 'NEW_REVIEW_SUCCESS'
+
+export const NEW_REVIEW_RESET = 'NEW_REVIEW_RESET'
+
+export const NEW_REVIEW_FAIL = 'NEW_REVIEW_FAIL'
+
+
+
+product Reducers
+
+
+
+NEW_REVIEW_REQUEST,
+
+    NEW_REVIEW_SUCCESS,
+
+    NEW_REVIEW_RESET,
+
+    NEW_REVIEW_FAIL,
+
+
+
+export const newReviewReducer = (state = {}, action) => {
 
     switch (action.type) {
 
 
 
-        case ADD_TO_CART:
-
-            const item = action.payload;
-
-
-
-            const isItemExist = state.cartItems.find(i => i.product === item.product)
-
-
-
-            if (isItemExist) {
-
-                return {
-
-                    ...state,
-
-                    cartItems: state.cartItems.map(i => i.product === isItemExist.product ? item : i)
-
-                }
-
-            } else {
-
-                return {
-
-                    ...state,
-
-                    cartItems: [...state.cartItems, item]
-
-                }
-
-            }
-
-        default:
-
-            return state
-
-    }
-
-}
-
-
-
-cartActions
-
-import axios from 'axios'
-
-import { ADD_TO_CART } from '../constants/cartConstants'
-
-
-
-export const addItemToCart = (id, quantity) => async (dispatch, getState) => {
-
-    const { data } = await axios.get(`/api/v1/product/${id}`)
-
-
-
-    dispatch({
-
-        type: ADD_TO_CART,
-
-        payload: {
-
-            product: data.product._id,
-
-            name: data.product.name,
-
-            price: data.product.price,
-
-            image: data.product.images[0].url,
-
-            stock: data.product.stock,
-
-            quantity
-
-        }
-
-    })
-
-
-
-    localStorage.setItem('cartItems', JSON.stringify(getState().cart.cartItems))
-
-}
-
-
-
-store.js
-
-
-
-import { cartReducer } from './reducers/cartReducers'
-
-
-
-cart: cartReducer
-
-
-
-components/product/productDetails
-
-import { addItemToCart } from '../../actions/cartActions'
-
-const addToCart = () => {
-
-        dispatch(addItemToCart(id, quantity));
-
-        alert.success('Item Added to Cart')
-
-    }
-
-
-
-<button type="button" id="cart_btn" className="btn btn-primary d-inline ml-4" disabled={product.stock === 0} onClick={addToCart}>Add to Cart</button>
-
-
-
-components/cart/cart.js
-
-import React, { Fragment } from 'react'
-
-import { Link } from 'react-router-dom'
-
-
-
-import MetaData from '../layout/MetaData'
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import { addItemToCart } from '../../actions/cartActions'
-
-// import { addItemToCart, removeItemFromCart } from '../../actions/cartActions'
-
-
-
-const Cart = () => {
-
-    const dispatch = useDispatch();
-
-    const { cartItems } = useSelector(state => state.cart)
-
-    const increaseQty = (id, quantity, stock) => {
-
-        const newQty = quantity + 1;
-
-        if (newQty > stock) return;
-
-        dispatch(addItemToCart(id, newQty))
-
-    }
-
-    const decreaseQty = (id, quantity) => {
-
-        const newQty = quantity - 1;
-
-        if (newQty <= 0) return;
-
-        dispatch(addItemToCart(id, newQty))
-
-    }
-
-    return (
-
-        <Fragment>
-
-            <MetaData title={'Your Cart'} />
-
-            {cartItems.length === 0 ? <h2 className="mt-5">Your Cart is Empty</h2> : (
-
-                <Fragment>
-
-                    <h2 className="mt-5">Your Cart: <b>{cartItems.length} items</b></h2>
-
-
-
-                    <div className="row d-flex justify-content-between">
-
-                        <div className="col-12 col-lg-8">
-
-                            {cartItems.map(item => (
-
-                                <Fragment>
-
-                                    <hr />
-
-                                    <div className="cart-item" key={item.product}>
-
-                                        <div className="row">
-
-                                            <div className="col-4 col-lg-3">
-
-                                                <img src={item.image} alt="Laptop" height="90" width="115" />
-
-                                            </div>
-
-
-
-                                            <div className="col-5 col-lg-3">
-
-                                                <Link to={`/products/${item.product}`}>{item.name}</Link>
-
-                                            </div>
-
-                                            <div className="col-4 col-lg-2 mt-4 mt-lg-0">
-
-                                                <p id="card_item_price">${item.price}</p>
-
-                                            </div>
-
-
-
-                                            <div className="col-4 col-lg-3 mt-4 mt-lg-0">
-
-                                                <div className="stockCounter d-inline">
-
-                                                    <span className="btn btn-danger minus" onClick={() => decreaseQty(item.product, item.quantity)}>-</span>
-
-
-
-                                                    <input type="number" className="form-control count d-inline" value={item.quantity} readOnly />
-
-
-
-                                                    <span className="btn btn-primary plus" onClick={() => increaseQty(item.product, item.quantity, item.stock)}>+</span>
-
-                                                </div>
-
-                                            </div>
-
-
-
-                                            <div className="col-4 col-lg-1 mt-4 mt-lg-0">
-
-                                                {/* <i id="delete_cart_item" className="fa fa-trash btn btn-danger" onClick={() => removeCartItemHandler(item.product)} ></i>*/}
-
-                                                <i id="delete_cart_item" className="fa fa-trash btn btn-danger" ></i>
-
-                                            </div>
-
-
-
-                                        </div>
-
-                                    </div>
-
-                                    <hr />
-
-                                </Fragment>
-
-                            ))}
-
-
-
-                        </div>
-
-
-
-                        <div className="col-12 col-lg-3 my-4">
-
-                            <div id="order_summary">
-
-                                <h4>Order Summary</h4>
-
-                                <hr />
-
-                                <p>Subtotal:  <span className="order-summary-values"></span></p>
-
-                                <p>Est. total: <span className="order-summary-values"></span></p>
-
-                                <hr />
-
-                                <button id="checkout_btn" className="btn btn-primary btn-block" >Check out</button>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </Fragment>
-
-            )}
-
-        </Fragment>
-
-    )
-
-}
-
-
-
-export default Cart
-
-
-
-header.js
-
-const { cartItems } = useSelector(state => state.cart)
-
-<span className="ml-1" id="cart_count">{cartItems.length}</span>
-
-
-
-app.js
-
-import Cart from './components/cart/Cart'
-
-<Route path="/cart" element={<Cart />} exact="true" />
-
-
-
-delete items from cart
-
-
-
-cartconstants
-
-
-
-export const REMOVE_ITEM_CART = 'REMOVE_ITEM_CART'
-
-
-
-cartreducers
-
-import { ADD_TO_CART, REMOVE_ITEM_CART } from '../constants/cartConstants'
-
-case REMOVE_ITEM_CART:
-
-            return {
-
-                ...state,
-
-                cartItems: state.cartItems.filter(i => i.product !== action.payload)
-
-            }
-
-
-
-cartActions
-
-import { ADD_TO_CART, REMOVE_ITEM_CART } from '../constants/cartConstants'
-
-
-
-export const removeItemFromCart = (id) => async (dispatch, getState) => {
-
-
-
-    dispatch({
-
-        type: REMOVE_ITEM_CART,
-
-        payload: id
-
-    })
-
-
-
-    localStorage.setItem('cartItems', JSON.stringify(getState().cart.cartItems))
-
-
-
-}
-
-
-
-cart component
-
-const removeCartItemHandler = (id) => {
-
-        dispatch(removeItemFromCart(id))
-
-    }
-
-
-
-<i id="delete_cart_item" className="fa fa-trash btn btn-danger" onClick={() => removeCartItemHandler(item.product)} ></i>
-
-                                               
-
-
-
- <div className="col-12 col-lg-3 my-4">
-
-                            <div id="order_summary">
-
-                                <h4>Order Summary</h4>
-
-                                <hr />
-
-                                <p>Subtotal:  <span className="order-summary-values">{cartItems.reduce((acc, item) => (acc + Number(item.quantity)), 0)} (Units)</span></p>
-
-                                <p>Est. total: <span className="order-summary-values">${cartItems.reduce((acc, item) => acc + item.quantity * item.price, 0).toFixed(2)}</span></p>
-
-
-
-                            
-
-                                <hr />
-
-                                 <button id="checkout_btn" className="btn btn-primary btn-block" onClick={checkoutHandler}>Check out</button>
-
-                                {/*<button id="checkout_btn" className="btn btn-primary btn-block" >Check out</button>*/}
-
-                            </div>
-
-                        </div>
-
-
-
-
-
-shipping info
-
-cartConstants
-
-export const SAVE_SHIPPING_INFO = 'SAVE_SHIPPING_INFO'
-
-
-
-cartReducers
-
-export const cartReducer = (state = { cartItems: [], shippingInfo: {} }, action) => {
-
-case SAVE_SHIPPING_INFO:
-
-            return {
-
-                ...state,
-
-                shippingInfo: action.payload
-
-            }
-
-
-
-cartActions
-
-export const saveShippingInfo = (data) => async (dispatch) => {
-
-
-
-    dispatch({
-
-        type: SAVE_SHIPPING_INFO,
-
-        payload: data
-
-    })
-
-
-
-    localStorage.setItem('shippingInfo', JSON.stringify(data))
-
-
-
-}
-
-
-
-components/cart
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import { Link, useNavigate } from 'react-router-dom'
-
-let navigate = useNavigate();
-
-const checkoutHandler = () => {
-
-        navigate('/login?redirect=shipping')
-
-    }
-
-
-
-
-
- <button id="checkout_btn" className="btn btn-primary btn-block" onClick={checkoutHandler}>Check out</button>
-
-
-
-cartreducers
-
-export const cartReducer = (state = { cartItems: [],  shippingInfo: {} },
-
-
-
-components/cart/Shipping.js
-
-import React, { Fragment, useState } from 'react'
-
-import { useNavigate } from "react-router-dom";
-
-import { countries } from 'countries-list'
-
-
-
-import MetaData from '../layout/MetaData'
-
-import CheckoutSteps from './CheckoutSteps'
-
-
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import { saveShippingInfo } from '../../actions/cartActions'
-
-
-
-const Shipping = () => {
-
-
-
-    const countriesList = Object.values(countries)
-
-
-
-    const { shippingInfo } = useSelector(state => state.cart)
-
-
-
-    const [address, setAddress] = useState(shippingInfo.address)
-
-    const [city, setCity] = useState(shippingInfo.city)
-
-    const [postalCode, setPostalCode] = useState(shippingInfo.postalCode)
-
-    const [phoneNo, setPhoneNo] = useState(shippingInfo.phoneNo)
-
-    const [country, setCountry] = useState(shippingInfo.country)
-
-
-
-    const dispatch = useDispatch();
-
-    let navigate = useNavigate();
-
-
-
-    const submitHandler = (e) => {
-
-        e.preventDefault()
-
-
-
-        dispatch(saveShippingInfo({ address, city, phoneNo, postalCode, country }))
-
-        navigate('/confirm')
-
-    }
-
-
-
-    return (
-
-        <Fragment>
-
-
-
-            <MetaData title={'Shipping Info'} />
-
-
-
-            <CheckoutSteps shipping />
-
-
-
-            <div className="row wrapper">
-
-                <div className="col-10 col-lg-5">
-
-                    <form className="shadow-lg" onSubmit={submitHandler}>
-
-                        <h1 className="mb-4">Shipping Info</h1>
-
-                        <div className="form-group">
-
-                            <label htmlFor="address_field">Address</label>
-
-                            <input
-
-                                type="text"
-
-                                id="address_field"
-
-                                className="form-control"
-
-                                value={address}
-
-                                onChange={(e) => setAddress(e.target.value)}
-
-                                required
-
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="city_field">City</label>
-
-                            <input
-
-                                type="text"
-
-                                id="city_field"
-
-                                className="form-control"
-
-                                value={city}
-
-                                onChange={(e) => setCity(e.target.value)}
-
-                                required
-
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="phone_field">Phone No</label>
-
-                            <input
-
-                                type="phone"
-
-                                id="phone_field"
-
-                                className="form-control"
-
-                                value={phoneNo}
-
-                                onChange={(e) => setPhoneNo(e.target.value)}
-
-                                required
-
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="postal_code_field">Postal Code</label>
-
-                            <input
-
-                                type="number"
-
-                                id="postal_code_field"
-
-                                className="form-control"
-
-                                value={postalCode}
-
-                                onChange={(e) => setPostalCode(e.target.value)}
-
-                                required
-
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="country_field">Country</label>
-
-                            <select
-
-                                id="country_field"
-
-                                className="form-control"
-
-                                value={country}
-
-                                onChange={(e) => setCountry(e.target.value)}
-
-                                required
-
-                            >
-
-
-
-                                {countriesList.map(country => (
-
-                                    <option key={country.name} value={country.name}>
-
-                                        {country.name}
-
-                                    </option>
-
-                                ))}
-
-
-
-                            </select>
-
-                        </div>
-
-
-
-                        <button
-
-                            id="shipping_btn"
-
-                            type="submit"
-
-                            className="btn btn-block py-3"
-
-                        >
-
-                            CONTINUE
-
-                            </button>
-
-                    </form>
-
-                </div>
-
-            </div>
-
-
-
-        </Fragment>
-
-    )
-
-}
-
-
-
-export default Shipping
-
-
-
-
-
-store
-
-let initialState = {
-
-    cart: {
-
-        cartItems: localStorage.getItem('cartItems')
-
-            ? JSON.parse(localStorage.getItem('cartItems'))
-
-            : [],
-
-        shippingInfo: localStorage.getItem('shippingInfo')
-
-             ? JSON.parse(localStorage.getItem('shippingInfo'))
-
-            : {}
-
-    }
-
-}
-
-
-
-App.js
-
-import Shipping from './components/cart/Shipping'
-
-<Route path="/shipping" 
-
-            element={
-
-             <ProtectedRoute >
-
-                 <Shipping />
-
-             </ProtectedRoute> } exact="true" />
-
-
-
-//login
-
-import { Link, useNavigate, useLocation } from "react-router-dom";
-
-let location = useLocation();
-
-const redirect = location.search ? location.search.split('=')[1] : '/'
-
- if (isAuthenticated) {
-
-            // history.push('/')
-
-            navigate(redirect)
-
-        }
-
-
-
-
-
-components/cart/CheckoutSteps
-
-
-
-import React from 'react'
-
-import { Link } from 'react-router-dom'
-
-
-
-import React from 'react'
-
-import { Link } from 'react-router-dom'
-
-
-
-const CheckoutSteps = ({ shipping
-
-    // , confirmOrder, payment 
-
-}) => {
-
-    return (
-
-        <div className="checkout-progress d-flex justify-content-center mt-5">
-
-
-
-            {shipping ? <Link to='shippping' className="float-right">
-
-                <div className="triangle2-active"></div>
-
-                <div className="step active-step">Shipping</div>
-
-                <div className="triangle-active"></div>
-
-            </Link> : <Link to="#!" disabled>
-
-                <div className="triangle2-incomplete"></div>
-
-                <div className="step incomplete">Shipping</div>
-
-                <div className="triangle-incomplete"></div>
-
-            </Link>}
-
-
-
-            {/* {confirmOrder ? <Link to='/order/confirm' className="float-right">
-
-                <div className="triangle2-active"></div>
-
-                <div className="step active-step">Confirm Order</div>
-
-                <div className="triangle-active"></div>
-
-            </Link> : <Link to="#!" disabled>
-
-                <div className="triangle2-incomplete"></div>
-
-                <div className="step incomplete">Confirm Order</div>
-
-                <div className="triangle-incomplete"></div>
-
-            </Link>} */}
-
-            <div className="triangle2-incomplete"></div>
-
-            <div className="step incomplete">Confirm Order</div>
-
-            <div className="triangle-incomplete"></div>
-
-
-
-            {/* {payment ? <Link to='/payment' className="float-right">
-
-                <div className="triangle2-active"></div>
-
-                <div className="step active-step">Payment</div>
-
-                <div className="triangle-active"></div>
-
-            </Link> : <Link to="#!" disabled>
-
-                <div className="triangle2-incomplete"></div>
-
-                <div className="step incomplete">Payment</div>
-
-                <div className="triangle-incomplete"></div>
-
-            </Link>} */}
-
-            <div className="triangle2-incomplete"></div>
-
-            <div className="step incomplete">Payment</div>
-
-            <div className="triangle-incomplete"></div>
-
-
-
-        </div>
-
-    )
-
-}
-
-
-
-export default CheckoutSteps
-
-
-
-Shipping
-
-import CheckoutSteps from './CheckoutSteps'
-
-
-
-         <MetaData title={'Shipping Info'} />
-
-            <CheckoutSteps shipping />
-
-
-
-
-
-cart/confirmOrder
-
-
-
-import React, { Fragment } from 'react'
-
-import { Link, useNavigate } from 'react-router-dom'
-
-
-
-import MetaData from '../layout/MetaData'
-
-import CheckoutSteps from './CheckoutSteps'
-
-
-
-import { useSelector } from 'react-redux'
-
-
-
-
-
-const ConfirmOrder = () => {
-
-
-
-    const { cartItems, shippingInfo } = useSelector(state => state.cart)
-
-    const { user } = useSelector(state => state.auth)
-
-    let navigate = useNavigate();
-
-
-
-    // Calculate Order Prices
-
-    const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-
-    const shippingPrice = itemsPrice > 200 ? 0 : 25
-
-    const taxPrice = Number((0.05 * itemsPrice).toFixed(2))
-
-    const totalPrice = (itemsPrice + shippingPrice + taxPrice).toFixed(2)
-
-
-
-    const processToPayment = () => {
-
-        const data = {
-
-            itemsPrice: itemsPrice.toFixed(2),
-
-            shippingPrice,
-
-            taxPrice,
-
-            totalPrice
-
-        }
-
-
-
-        sessionStorage.setItem('orderInfo', JSON.stringify(data))
-
-        navigate('/payment')
-
-    }
-
-
-
-    return (
-
-        <Fragment>
-
-
-
-            <MetaData title={'Confirm Order'} />
-
-
-
-            <CheckoutSteps shipping confirmOrder />
-
-
-
-            <div className="row d-flex justify-content-between">
-
-                <div className="col-12 col-lg-8 mt-5 order-confirm">
-
-
-
-                    <h4 className="mb-3">Shipping Info</h4>
-
-                    <p><b>Name:</b> {user && user.name}</p>
-
-                    <p><b>Phone:</b> {shippingInfo.phoneNo}</p>
-
-                    <p className="mb-4"><b>Address:</b> {`${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.postalCode}, ${shippingInfo.country}`}</p>
-
-
-
-                    <hr />
-
-                    <h4 className="mt-4">Your Cart Items:</h4>
-
-
-
-                    {cartItems.map(item => (
-
-                        <Fragment>
-
-                            <hr />
-
-                            <div className="cart-item my-1" key={item.product}>
-
-                                <div className="row">
-
-                                    <div className="col-4 col-lg-2">
-
-                                        <img src={item.image} alt="Laptop" height="45" width="65" />
-
-                                    </div>
-
-
-
-                                    <div className="col-5 col-lg-6">
-
-                                        <Link to={`/product/${item.product}`}>{item.name}</Link>
-
-                                    </div>
-
-
-
-
-
-                                    <div className="col-4 col-lg-4 mt-4 mt-lg-0">
-
-                                        <p>{item.quantity} x ${item.price} = <b>${(item.quantity * item.price).toFixed(2)}</b></p>
-
-                                    </div>
-
-
-
-                                </div>
-
-                            </div>
-
-                            <hr />
-
-                        </Fragment>
-
-                    ))}
-
-
-
-                </div>
-
-
-
-                <div className="col-12 col-lg-3 my-4">
-
-                    <div id="order_summary">
-
-                        <h4>Order Summary</h4>
-
-                        <hr />
-
-                        <p>Subtotal:  <span className="order-summary-values">${itemsPrice}</span></p>
-
-                        <p>Shipping: <span className="order-summary-values">${shippingPrice}</span></p>
-
-                        <p>Tax:  <span className="order-summary-values">${taxPrice}</span></p>
-
-
-
-                        <hr />
-
-
-
-                        <p>Total: <span className="order-summary-values">${totalPrice}</span></p>
-
-
-
-                        <hr />
-
-                        <button id="checkout_btn" className="btn btn-primary btn-block" onClick={processToPayment}>Proceed to Payment</button>
-
-                    </div>
-
-                </div>
-
-
-
-
-
-            </div>
-
-
-
-        </Fragment>
-
-    )
-
-}
-
-
-
-export default ConfirmOrder
-
-
-
-App
-
-import ConfirmOrder from './components/cart/ConfirmOrder'
-
-<Route path="/confirm" 
-
-            element={
-
-             <ProtectedRoute >
-
-                 <ConfirmOrder />
-
-             </ProtectedRoute> }  />
-
-
-
- orderconstants
-
- export const CREATE_ORDER_REQUEST = 'CREATE_ORDER_REQUEST'
-
-export const CREATE_ORDER_SUCCESS = 'CREATE_ORDER_SUCCESS'
-
-export const CREATE_ORDER_FAIL = 'CREATE_ORDER_FAIL'
-
-export const CLEAR_ERRORS = 'CLEAR_ERRORS'
-
-
-
-
-
-ordereducers
-
-import {
-
-    CREATE_ORDER_REQUEST,
-
-    CREATE_ORDER_SUCCESS,
-
-    CREATE_ORDER_FAIL,
-
-    
-
-    CLEAR_ERRORS
-
-} from '../constants/orderConstants'
-
-
-
-export const newOrderReducer = (state = {}, action) => {
-
-    switch (action.type) {
-
-
-
-        case CREATE_ORDER_REQUEST:
+        case NEW_REVIEW_REQUEST:
 
             return {
 
@@ -1230,25 +150,37 @@ export const newOrderReducer = (state = {}, action) => {
 
 
 
-        case CREATE_ORDER_SUCCESS:
+        case NEW_REVIEW_SUCCESS:
 
             return {
 
                 loading: false,
 
-                order: action.payload
+                success: action.payload
 
             }
 
 
 
-        case CREATE_ORDER_FAIL:
+        case NEW_REVIEW_FAIL:
 
             return {
 
-                loading: false,
+                ...state,
 
                 error: action.payload
+
+            }
+
+
+
+        case NEW_REVIEW_RESET:
+
+            return {
+
+                ...state,
+
+                success: false
 
             }
 
@@ -1268,7 +200,7 @@ export const newOrderReducer = (state = {}, action) => {
 
         default:
 
-            return state;
+            return state
 
     }
 
@@ -1276,35 +208,33 @@ export const newOrderReducer = (state = {}, action) => {
 
 
 
-orderactions
+store
 
-import axios from 'axios'
-
-
-
-import {
-
-    CREATE_ORDER_REQUEST,
-
-    CREATE_ORDER_SUCCESS,
-
-    CREATE_ORDER_FAIL,
-
-   
-
-    CLEAR_ERRORS
-
-} from '../constants/orderConstants'
+import { productsReducer, productDetailsReducer, newReviewReducer } from './reducers/productReducers'
 
 
 
-export const createOrder = (order) => async (dispatch, getState) => {
+newReview: newReviewReducer
+
+
+
+productActions
+
+NEW_REVIEW_REQUEST,
+
+    NEW_REVIEW_SUCCESS,
+
+    NEW_REVIEW_FAIL,
+
+
+
+export const newReview = (reviewData) => async (dispatch) => {
 
     try {
 
 
 
-        dispatch({ type: CREATE_ORDER_REQUEST })
+        dispatch({ type: NEW_REVIEW_REQUEST })
 
 
 
@@ -1320,15 +250,15 @@ export const createOrder = (order) => async (dispatch, getState) => {
 
 
 
-        const { data } = await axios.post('/api/v1/order/new', order, config)
+        const { data } = await axios.put(`/api/v1/review`, reviewData, config)
 
 
 
         dispatch({
 
-            type: CREATE_ORDER_SUCCESS,
+            type: NEW_REVIEW_SUCCESS,
 
-            payload: data
+            payload: data.success
 
         })
 
@@ -1338,7 +268,7 @@ export const createOrder = (order) => async (dispatch, getState) => {
 
         dispatch({
 
-            type: CREATE_ORDER_FAIL,
+            type: NEW_REVIEW_FAIL,
 
             payload: error.response.data.message
 
@@ -1348,77 +278,133 @@ export const createOrder = (order) => async (dispatch, getState) => {
 
 }
 
-export const clearErrors = () => async (dispatch) =>{
 
-    dispatch({
 
-        type: CLEAR_ERRORS
+productDetails
 
 
 
-    })
+const { user } = useSelector(state => state.auth)
+
+const [rating, setRating] = useState(0);
+
+    const [comment, setComment] = useState('');
+
+
+
+<p id="product_seller mb-3">Sold by: <strong>{product.seller}</strong></p>
+
+
+
+{user ? <button id="review_btn" type="button" className="btn btn-primary mt-4" data-toggle="modal" data-target="#ratingModal" onClick={setUserRatings}>
+
+Submit Your Review
+
+</button>
+
+:
+
+<div className="alert alert-danger mt-5" type='alert'>Login to post your review.</div>
 
 }
 
 
 
-store.js
+ function setUserRatings() {
 
-import { newOrderReducer } from './reducers/orderReducers'
-
-newOrder: newOrderReducer,
+        const stars = document.querySelectorAll('.star');
 
 
 
-component/cart/payment.js
+        stars.forEach((star, index) => {
 
-import React, { Fragment, useEffect } from 'react'
-
-import { useNavigate } from "react-router-dom";
+            star.starValue = index + 1;
 
 
 
-import MetaData from '../layout/MetaData'
+            ['click', 'mouseover', 'mouseout'].forEach(function (e) {
 
-import CheckoutSteps from './CheckoutSteps'
+                star.addEventListener(e, showRatings);
 
+            })
 
+        })
 
-import { useAlert } from 'react-alert'
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import { createOrder, clearErrors } from '../../actions/orderActions'
+        }
 
 
 
-const Payment = () => {
+function showRatings(e) {
+
+            stars.forEach((star, index) => {
+
+                if (e.type === 'click') {
+
+                    if (index < this.starValue) {
+
+                        star.classList.add('orange');
 
 
 
-    const alert = useAlert();
+                        setRating(this.starValue)
 
-    const dispatch = useDispatch();
+                    } else {
 
-    let navigate = useNavigate();
+                        star.classList.remove('orange')
 
+                    }
 
-
-    const { user } = useSelector(state => state.auth)
-
-    const { cartItems, shippingInfo } = useSelector(state => state.cart);
-
-    const { error } = useSelector(state => state.newOrder)
+                }
 
 
 
-    useEffect(() => {
+                if (e.type === 'mouseover') {
+
+                    if (index < this.starValue) {
+
+                        star.classList.add('yellow');
+
+                    } else {
+
+                        star.classList.remove('yellow')
+
+                    }
+
+                }
 
 
 
-        if (error) {
+                if (e.type === 'mouseout') {
 
-            alert.error(error)
+                    star.classList.remove('yellow')
+
+                }
+
+            })
+
+        }
+
+    }
+
+
+
+const [rating, setRating] = useState(0);
+
+    const [comment, setComment] = useState('');
+
+    const [rating, setRating] = useState(0);
+
+    
+
+const { error: reviewError, success } = useSelector(state => state.newReview)
+
+
+
+//useeffect
+
+if (reviewError) {
+
+            alert.error(reviewError);
 
             dispatch(clearErrors())
 
@@ -1426,169 +412,165 @@ const Payment = () => {
 
 
 
-    }, [dispatch, alert, error])
+        if (success) {
 
+            alert.success('Reivew posted successfully')
 
-
-    const order = {
-
-        orderItems: cartItems,
-
-        shippingInfo
-
-    }
-
-
-
-    const orderInfo = JSON.parse(sessionStorage.getItem('orderInfo'));
-
-    if (orderInfo) {
-
-        order.itemsPrice = orderInfo.itemsPrice
-
-        order.shippingPrice = orderInfo.shippingPrice
-
-        order.taxPrice = orderInfo.taxPrice
-
-        order.totalPrice = orderInfo.totalPrice
-
-    }
-
-
-
-    const submitHandler = async (e) => {
-
-        e.preventDefault();
-
-        document.querySelector('#pay_btn').disabled = true;
-
-        order.paymentInfo = {
-
-            id: 'pi_1DpdYh2eZvKYlo2CYIynhU32',
-
-            status: 'succeeded'
+            dispatch({ type: NEW_REVIEW_RESET })
 
         }
 
 
 
-        dispatch(createOrder(order))
+const reviewHandler = () => {
 
-        navigate('/success')
+        const formData = new FormData();
 
 
+
+        formData.set('rating', rating);
+
+        formData.set('comment', comment);
+
+        formData.set('productId', match.params.id);
+
+
+
+        dispatch(newReview(formData));
 
     }
 
 
 
+import { NEW_REVIEW_RESET } from '../../constants/productConstants'
+
+import { getProductDetails, newReview, clearErrors } from '../../actions/productActions'
+
+
+
+
+
+<button className="btn my-3 float-right review-btn px-4 text-white" onClick={reviewHandler} data-dismiss="modal" aria-label="Close">Submit</button>
+
+
+
+<textarea
+
+                                                        name="review"
+
+                                                        id="review" className="form-control mt-3"
+
+                                                        value={comment}
+
+                                                        onChange={(e) => setComment(e.target.value)}
+
+                                                    >
+
+
+
+                                                    </textarea>
+
+
+
+useEffect(() => {
+
+        dispatch(getProductDetails(id))
+
+
+
+        if (error) {
+
+            alert.error(error);
+
+            dispatch(clearErrors())
+
+        }
+
+
+
+        if (reviewError) {
+
+            alert.error(reviewError);
+
+            dispatch(clearErrors())
+
+        }
+
+
+
+        if (success) {
+
+            alert.success('Reivew posted successfully')
+
+            dispatch({ type: NEW_REVIEW_RESET })
+
+        }
+
+
+
+    }, [dispatch, alert, error, reviewError, id, success])
+
+
+
+
+
+productcontroller
+
+exports.getProductReviews = async (req, res, next) => {
+
+    const product = await Product.findById(req.query.id);
+
+    res.status(200).json({
+
+        success: true,
+
+        reviews: product.reviews
+
+    })
+
+}
+
+router.get('/reviews',isAuthenticatedUser, getProductReviews)
+
+component/review/listReviews
+
+import React from 'react'
+
+
+
+const ListReviews = ({ reviews }) => {
+
     return (
 
-        <Fragment>
+        <div class="reviews w-75">
 
-            <MetaData title={'Payment'} />
+            <h3>Other's Reviews:</h3>
 
+            <hr />
 
+            {reviews && reviews.map(review => (
 
-            <CheckoutSteps shipping confirmOrder payment />
+                <div key={review._id} class="review-card my-3">
 
+                    <div className="rating-outer">
 
+                        <div className="rating-inner" style={{ width: `${(review.rating / 5) * 100}%` }}></div>
 
-            <div className="row wrapper">
+                    </div>
 
-                <div className="col-10 col-lg-5">
+                    <p class="review_user">by {review.name}</p>
 
-                    <form className="shadow-lg" onSubmit={submitHandler}>
-
-                        <h1 className="mb-4">Card Info</h1>
-
-                        <div className="form-group">
-
-                            <label htmlFor="card_num_field">Card Number</label>
-
-                            <input
-
-                                type="text"
-
-                                id="card_num_field"
-
-                                className="form-control"
+                    <p class="review_comment">{review.comment}</p>
 
 
 
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="card_exp_field">Card Expiry</label>
-
-                            <input
-
-                                type="text"
-
-                                id="card_exp_field"
-
-                                className="form-control"
-
-
-
-                            />
-
-                        </div>
-
-
-
-                        <div className="form-group">
-
-                            <label htmlFor="card_cvc_field">Card CVC</label>
-
-                            <input
-
-                                type="text"
-
-                                id="card_cvc_field"
-
-                                className="form-control"
-
-
-
-                            />
-
-                        </div>
-
-
-
-
-
-                        <button
-
-                            id="pay_btn"
-
-                            type="submit"
-
-                            className="btn btn-block py-3"
-
-                        >
-
-                            Pay {` - ${orderInfo && orderInfo.totalPrice}`}
-
-                        </button>
-
-
-
-                    </form>
+                    <hr />
 
                 </div>
 
-            </div>
+            ))}
 
-
-
-        </Fragment>
+        </div>
 
     )
 
@@ -1596,69 +578,107 @@ const Payment = () => {
 
 
 
-export default Payment
+export default ListReviews
 
 
 
-app.js
+productDetails
 
-import Payment from './components/cart/Payment'
+ {product.reviews && product.reviews.length > 0 && (
 
-<Route path="/payment"
+                        <ListReviews reviews={product.reviews} />
 
-          element={
+                    )}
 
-            <ProtectedRoute >
 
-              <Payment />
 
-            </ProtectedRoute>} />
+import ListReviews from '../review/ListReviews'
 
-cart/orderSuccess
 
-import React, { Fragment } from 'react'
+
+admin/sidebar
+
+import React from 'react'
 
 import { Link } from 'react-router-dom'
 
-import MetaData from '../layout/MetaData'
 
 
-
-const OrderSuccess = () => {
+const Sidebar = () => {
 
     return (
 
-        <Fragment>
+        <div className="sidebar-wrapper">
+
+            <nav id="sidebar">
+
+                <ul className="list-unstyled components">
+
+                    <li>
+
+                        <Link to="/dashboard"><i className="fa fa-tachometer"></i> Dashboard</Link>
+
+                    </li>
 
 
 
-            <MetaData title={'Order Success'} />
+                    <li>
+
+                        <a href="#productSubmenu" data-toggle="collapse" aria-expanded="false" className="dropdown-toggle"><i
+
+                            className="fa fa-product-hunt"></i> Products</a>
+
+                        <ul className="collapse list-unstyled" id="productSubmenu">
+
+                            <li>
+
+                                <Link to="/admin/products"><i className="fa fa-clipboard"></i> All</Link>
+
+                            </li>
 
 
 
-            <div className="row justify-content-center">
+                            <li>
 
-                <div className="col-6 mt-5 text-center">
+                                <Link to="/admin/product"><i className="fa fa-plus"></i> Create</Link>
 
-                    <img className="my-5 img-fluid d-block mx-auto" src="/images/order_success.png" alt="Order Success" width="200" height="200" />
+                            </li>
 
+                        </ul>
 
-
-                    <h2>Your Order has been placed successfully.</h2>
-
-
-
-                    <Link to="/orders/me">Go to Orders</Link>
-
-                </div>
+                    </li>
 
 
 
-            </div>
+                    <li>
+
+                        <Link to="/admin/orders"><i className="fa fa-shopping-basket"></i> Orders</Link>
+
+                    </li>
 
 
 
-        </Fragment>
+                    <li>
+
+                        <Link to="/admin/users"><i className="fa fa-users"></i> Users</Link>
+
+                    </li>
+
+
+
+                    <li>
+
+                        <Link to="/admin/reviews"><i className="fa fa-star"></i> Reviews</Link>
+
+                    </li>
+
+
+
+                </ul>
+
+            </nav>
+
+        </div>
 
     )
 
@@ -1666,153 +686,697 @@ const OrderSuccess = () => {
 
 
 
-export default OrderSuccess
+export default Sidebar
 
 
 
-App.js
+admin/dashboard
 
-import OrderSuccess from './components/cart/OrderSuccess'
+import React, { Fragment, useEffect } from 'react'
 
-<Route path="/success" 
+import { Link } from 'react-router-dom';
 
-            element={
 
-             <ProtectedRoute >
 
-                 <OrderSuccess />
+import MetaData from '../layout/MetaData'
 
-             </ProtectedRoute> }  />
+import Loader from '../layout/Loader'
 
-payment
+import Sidebar from './Sidebar'
 
-const submitHandler = async (e) => {
 
-        e.preventDefault();
 
-        document.querySelector('#pay_btn').disabled = true;
+import { useDispatch, useSelector } from 'react-redux'
 
-        order.paymentInfo = {
 
-            id: 'pi_1DpdYh2eZvKYlo2CYIynhU32',
 
-            status: 'succeeded'
+import { getAdminProducts } from '../../actions/productActions'
+
+import { allOrders } from '../../actions/orderActions'
+
+import { allUsers } from '../../actions/userActions'
+
+
+
+const Dashboard = () => {
+
+
+
+    const dispatch = useDispatch();
+
+
+
+    const { products } = useSelector(state => state.products)
+
+    const { users } = useSelector(state => state.allUsers)
+
+    const { orders, totalAmount, loading } = useSelector(state => state.allOrders)
+
+
+
+    let outOfStock = 0;
+
+    products.forEach(product => {
+
+        if (product.stock === 0) {
+
+            outOfStock += 1;
 
         }
 
-
-
-        dispatch(createOrder(order))
-
-        navigate('/success')
-
-      }
+    })
 
 
 
-orderconstants
+    useEffect(() => {
 
-export const MY_ORDERS_REQUEST = 'MY_ORDERS_REQUEST'
+        dispatch(getAdminProducts())
 
-export const MY_ORDERS_SUCCESS = 'MY_ORDERS_SUCCESS'
+        dispatch(allOrders())
 
-export const MY_ORDERS_FAIL = 'MY_ORDERS_FAIL'
+        dispatch(allUsers())
 
-
-
-orderReducers
-
-MY_ORDERS_REQUEST,
-
-    MY_ORDERS_SUCCESS,
-
-    MY_ORDERS_FAIL,
+    }, [dispatch])
 
 
 
-    export const myOrdersReducer = (state = { orders: [] }, action) => {
+    return (
 
-    switch (action.type) {
+        <Fragment>
 
+            <div className="row">
 
+                <div className="col-12 col-md-2">
 
-        case MY_ORDERS_REQUEST:
+                    <Sidebar />
 
-            return {
-
-                loading: true
-
-            }
+                </div>
 
 
 
-        case MY_ORDERS_SUCCESS:
+                <div className="col-12 col-md-10">
 
-            return {
-
-                loading: false,
-
-                orders: action.payload
-
-            }
+                    <h1 className="my-4">Dashboard</h1>
 
 
 
-        case MY_ORDERS_FAIL:
+                    {loading ? <Loader /> : (
 
-            return {
+                        <Fragment>
 
-                loading: false,
-
-                error: action.payload
-
-            }
-
-        case CLEAR_ERRORS:
-
-            return {
-
-                ...state,
-
-                error: null
-
-            }
+                            <MetaData title={'Admin Dashboard'} />
 
 
 
-        default:
+                            <div className="row pr-4">
 
-            return state;
+                                <div className="col-xl-12 col-sm-12 mb-3">
 
-    }
+                                    <div className="card text-white bg-primary o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Total Amount<br /> <b>${totalAmount && totalAmount.toFixed(2)}</b>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+
+                            <div className="row pr-4">
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-success o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Products<br /> <b>{products && products.length}</b></div>
+
+                                        </div>
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/products">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-danger o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Orders<br /> <b>{orders && orders.length}</b></div>
+
+                                        </div>
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/orders">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-info o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Users<br /> <b>{users && users.length}</b></div>
+
+                                        </div>
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/users">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-warning o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Out of Stock<br /> <b>{outOfStock}</b></div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </Fragment>
+
+                    )}
+
+
+
+                </div>
+
+            </div>
+
+
+
+        </Fragment >
+
+    )
 
 }
 
 
 
-orderactions
+export default Dashboard
 
-// Get curretly logged in user orders
 
-export const myOrders = () => async (dispatch) => {
+
+App
+
+
+
+import Dashboard from './components/admin/Dashboard'
+
+ <Route
+
+        path="/dashboard"
+
+        element={
+
+          <ProtectedRoute isAdmin={true}>
+
+            <Dashboard />
+
+          </ProtectedRoute>
+
+        }
+
+      />
+
+
+
+protectedroute
+
+const ProtectedRoute = ({ isAdmin, component: Component, ...rest }) => {
+
+
+
+if (isAdmin === true && user.role !== 'admin') {
+
+                            return <Redirect to="/" />
+
+                        }                                                
+
+
+
+
+
+
+
+Dashboard
+
+import React, { Fragment, useEffect } from 'react'
+
+import { Link } from 'react-router-dom';
+
+
+
+import MetaData from '../layout/MetaData'
+
+import Loader from '../layout/Loader'
+
+import Sidebar from './Sidebar'
+
+
+
+import { useDispatch, useSelector } from 'react-redux'
+
+
+
+import { getAdminProducts } from '../../actions/productActions'
+
+import { allOrders } from '../../actions/orderActions'
+
+import { allUsers } from '../../actions/userActions'
+
+
+
+const Dashboard = () => {
+
+
+
+    const dispatch = useDispatch();
+
+
+
+    const { products } = useSelector(state => state.products)
+
+    // const { users } = useSelector(state => state.allUsers)
+
+    // const { orders, totalAmount, loading } = useSelector(state => state.allOrders)
+
+
+
+    // let outOfStock = 0;
+
+    // products.forEach(product => {
+
+    //     if (product.stock === 0) {
+
+    //         outOfStock += 1;
+
+    //     }
+
+    // })
+
+
+
+    // useEffect(() => {
+
+    //     dispatch(getAdminProducts())
+
+    //     dispatch(allOrders())
+
+    //     dispatch(allUsers())
+
+    // }, [dispatch])
+
+
+
+    return (
+
+        <Fragment>
+
+            <div className="row">
+
+                <div className="col-12 col-md-2">
+
+                    <Sidebar />
+
+                </div>
+
+
+
+                <div className="col-12 col-md-10">
+
+                    <h1 className="my-4">Dashboard</h1>
+
+
+
+                    {false ? <Loader /> : (
+
+                        <Fragment>
+
+                            <MetaData title={'Admin Dashboard'} />
+
+
+
+                            <div className="row pr-4">
+
+                                <div className="col-xl-12 col-sm-12 mb-3">
+
+                                    <div className="card text-white bg-primary o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            {/*<div className="text-center card-font-size">Total Amount<br /> <b>${totalAmount && totalAmount.toFixed(2)}</b>
+
+                                            </div>*/}
+
+
+
+                                            <div className="text-center card-font-size">Total Amount<br /> <b>42</b>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+
+                            <div className="row pr-4">
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-success o-hidden h-100">
+
+                                        
+
+                                        {/*<div className="card-body">
+
+                                            <div className="text-center card-font-size">Products<br /> <b>{products && products.length}</b></div>
+
+                                        </div>*/}
+
+
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Products<br /> <b>{products && products.length}</b></div>
+
+                                        </div>
+
+
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/products">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-danger o-hidden h-100">
+
+                                        
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Orders<br /> <b>54</b></div>
+
+                                        </div>
+
+
+
+                                        {/*<div className="card-body">
+
+                                            <div className="text-center card-font-size">Orders<br /> <b>{orders && orders.length}</b></div>
+
+                                        </div>*/}
+
+
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/orders">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-info o-hidden h-100">
+
+                                        
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Users<br /> <b>42</b></div>
+
+                                        </div>
+
+
+
+                                        {/*<div className="card-body">
+
+                                            <div className="text-center card-font-size">Users<br /> <b>{users && users.length}</b></div>
+
+                                        </div>*/}
+
+ 
+
+                                        <Link className="card-footer text-white clearfix small z-1" to="/admin/users">
+
+                                            <span className="float-left">View Details</span>
+
+                                            <span className="float-right">
+
+                                                <i className="fa fa-angle-right"></i>
+
+                                            </span>
+
+                                        </Link>
+
+                                    </div>
+
+                                </div>
+
+
+
+
+
+                                <div className="col-xl-3 col-sm-6 mb-3">
+
+                                    <div className="card text-white bg-warning o-hidden h-100">
+
+                                        <div className="card-body">
+
+                                            <div className="text-center card-font-size">Out of Stock<br /> <b>0</b></div>
+
+                                        </div>
+
+
+
+                                       {/* <div className="card-body">
+
+                                            <div className="text-center card-font-size">Out of Stock<br /> <b>{outOfStock}</b></div>
+
+                                        </div>*/}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </Fragment>
+
+                    )}
+
+
+
+                </div>
+
+            </div>
+
+
+
+        </Fragment >
+
+    )
+
+}
+
+
+
+export default Dashboard
+
+
+
+productcontroller
+
+// Get all products (Admin)  =>   /api/v1/admin/products
+
+exports.getAdminProducts = async (req, res, next) => {
+
+
+
+    const products = await Product.find();
+
+
+
+    res.status(200).json({
+
+        success: true,
+
+        products
+
+    })
+
+
+
+}
+
+
+
+route/product
+
+router.get('/admin/products', getAdminProducts);
+
+
+
+productconstants
+
+export const ADMIN_PRODUCTS_REQUEST = 'ADMIN_PRODUCTS_REQUEST'
+
+export const ADMIN_PRODUCTS_SUCCESS = 'ADMIN_PRODUCTS_SUCCESS'
+
+export const ADMIN_PRODUCTS_FAIL = 'ADMIN_PRODUCTS_FAIL'
+
+
+
+productreducers
+
+ADMIN_PRODUCTS_REQUEST,
+
+        ADMIN_PRODUCTS_SUCCESS,
+
+        ADMIN_PRODUCTS_FAIL,
+
+
+
+case ALL_PRODUCTS_FAIL:
+
+case ADMIN_PRODUCTS_FAIL:
+
+ case ADMIN_PRODUCTS_SUCCESS:
+
+            return {
+
+                loading: false,
+
+                products: action.payload
+
+            }
+
+
+
+
+
+productactions
+
+export const getAdminProducts = () => async (dispatch) => {
 
     try {
 
 
 
-        dispatch({ type: MY_ORDERS_REQUEST });
+        dispatch({ type: ADMIN_PRODUCTS_REQUEST })
 
 
 
-        const { data } = await axios.get('/api/v1/orders/me')
+        const { data } = await axios.get(`/api/v1/admin/products`)
 
 
 
         dispatch({
 
-            type: MY_ORDERS_SUCCESS,
+            type: ADMIN_PRODUCTS_SUCCESS,
 
-            payload: data.orders
+            payload: data.products
 
         })
 
@@ -1820,9 +1384,11 @@ export const myOrders = () => async (dispatch) => {
 
     } catch (error) {
 
+
+
         dispatch({
 
-            type: MY_ORDERS_FAIL,
+            type: ADMIN_PRODUCTS_FAIL,
 
             payload: error.response.data.message
 
@@ -1834,11 +1400,11 @@ export const myOrders = () => async (dispatch) => {
 
 
 
-components/order/listorders.js
+admin/ProductsList.js
 
 import React, { Fragment, useEffect } from 'react'
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { MDBDataTable } from 'mdbreact'
 
@@ -1848,49 +1414,83 @@ import MetaData from '../layout/MetaData'
 
 import Loader from '../layout/Loader'
 
+import Sidebar from './Sidebar'
 
 
 
+import { useAlert } from 'react-alert'
 
 import { useDispatch, useSelector } from 'react-redux'
 
-import { myOrders, clearErrors } from '../../actions/orderActions'
+import { getAdminProducts, deleteProduct, clearErrors } from '../../actions/productActions'
+
+import { DELETE_PRODUCT_RESET } from '../../constants/productConstants'
 
 
 
-const ListOrders = () => {
+const ProductsList = () => {
 
 
 
-   
+    const alert = useAlert();
 
     const dispatch = useDispatch();
 
+    let navigate = useNavigate()
 
+    const { loading, error, products } = useSelector(state => state.products);
 
-    const { loading, error, orders } = useSelector(state => state.myOrders);
+    // const { error: deleteError, isDeleted } = useSelector(state => state.product)
 
 
 
     useEffect(() => {
 
-        dispatch(myOrders());
+        dispatch(getAdminProducts());
 
 
 
         if (error) {
 
-           
+            alert.error(error);
 
             dispatch(clearErrors())
 
         }
 
-    }, [dispatch, error])
+
+
+        // if (deleteError) {
+
+        //     alert.error(deleteError);
+
+        //     dispatch(clearErrors())
+
+        // }
 
 
 
-    const setOrders = () => {
+        // if (isDeleted) {
+
+        //     alert.success('Product deleted successfully');
+
+        //     navigate('/admin/products');
+
+        //     dispatch({ type: DELETE_PRODUCT_RESET })
+
+        // }
+
+
+
+    }, [dispatch, alert, error, navigate])
+
+ 
+
+    // [dispatch, alert, error, deleteError, isDeleted, navigate])
+
+
+
+    const setProducts = () => {
 
         const data = {
 
@@ -1898,7 +1498,7 @@ const ListOrders = () => {
 
                 {
 
-                    label: 'Order ID',
+                    label: 'ID',
 
                     field: 'id',
 
@@ -1908,19 +1508,9 @@ const ListOrders = () => {
 
                 {
 
-                    label: 'Num of Items',
+                    label: 'Name',
 
-                    field: 'numOfItems',
-
-                    sort: 'asc'
-
-                },
-
-                {
-
-                    label: 'Amount',
-
-                    field: 'amount',
+                    field: 'name',
 
                     sort: 'asc'
 
@@ -1928,9 +1518,19 @@ const ListOrders = () => {
 
                 {
 
-                    label: 'Status',
+                    label: 'Price',
 
-                    field: 'status',
+                    field: 'price',
+
+                    sort: 'asc'
+
+                },
+
+                {
+
+                    label: 'Stock',
+
+                    field: 'stock',
 
                     sort: 'asc'
 
@@ -1942,8 +1542,6 @@ const ListOrders = () => {
 
                     field: 'actions',
 
-                    sort: 'asc'
-
                 },
 
             ],
@@ -1954,29 +1552,33 @@ const ListOrders = () => {
 
 
 
-        orders.forEach(order => {
+        products.forEach(product => {
 
             data.rows.push({
 
-                id: order._id,
+                id: product._id,
 
-                numOfItems: order.orderItems.length,
+                name: product.name,
 
-                amount: `$${order.totalPrice}`,
+                price: `$${product.price}`,
 
-                status: order.orderStatus && String(order.orderStatus).includes('Delivered')
+                stock: product.stock,
 
-                    ? <p style={{ color: 'green' }}>{order.orderStatus}</p>
+                actions: <Fragment>
 
-                    : <p style={{ color: 'red' }}>{order.orderStatus}</p>,
+                    <Link to={`/admin/product/${product._id}`} className="btn btn-primary py-1 px-2">
 
-                actions:
-
-                    <Link to={`/order/${order._id}`} className="btn btn-primary">
-
-                        <i className="fa fa-eye"></i>
+                        <i className="fa fa-pencil"></i>
 
                     </Link>
+
+                    <button className="btn btn-danger py-1 px-2 ml-2" onClick={() => deleteProductHandler(product._id)}>
+
+                        <i className="fa fa-trash"></i>
+
+                    </button>
+
+                </Fragment>
 
             })
 
@@ -1990,31 +1592,65 @@ const ListOrders = () => {
 
 
 
+    const deleteProductHandler = (id) => {
+
+        // dispatch(deleteProduct(id))
+
+    }
+
+
+
     return (
 
         <Fragment>
 
-            <MetaData title={'My Orders'} />
+            <MetaData title={'All Products'} />
 
-            <h1 className="my-5">My Orders</h1>
+            <div className="row">
 
-            {loading ? <Loader /> : (
+                <div className="col-12 col-md-2">
 
-                <MDBDataTable
+                    <Sidebar />
 
-                    data={setOrders()}
+                </div>
 
-                    className="px-3"
 
-                    bordered
 
-                    striped
+                <div className="col-12 col-md-10">
 
-                    hover
+                    <Fragment>
 
-                />
+                        <h1 className="my-5">All Products</h1>
 
-            )}
+
+
+                        {loading ? <Loader /> : (
+
+                            <MDBDataTable
+
+                                data={setProducts()}
+
+                                className="px-3"
+
+                                bordered
+
+                                striped
+
+                                hover
+
+                            />
+
+                        )}
+
+
+
+                    </Fragment>
+
+                </div>
+
+            </div>
+
+
 
         </Fragment>
 
@@ -2024,384 +1660,46 @@ const ListOrders = () => {
 
 
 
-export default ListOrders
+export default ProductsList
 
 
 
-store
 
-import { newOrderReducer, myOrdersReducer } from './reducers/orderReducers'
 
-myOrders: myOrdersReducer,
+dashboard
+
+ let outOfStock = 0;
+
+    products.forEach(product => {
+
+        if (product.stock === 0) {
+
+            outOfStock += 1;
+
+        }
+
+    })
+
+
 
 
 
 app.js
 
-import ListOrders from './components/order/ListOrders'
+import ProductsList from './components/admin/ProductsList'
 
-<Route path="/orders/me" 
+<Route
 
-            element={
+        path="/admin/products"
 
-             <ProtectedRoute >
+        element={
 
-                 <ListOrders />
+          <ProtectedRoute isAdmin={true}>
 
-             </ProtectedRoute> }  />
+            <ProductsList />
 
-
-
-orderconstanst
-
-export const ORDER_DETAILS_REQUEST = 'ORDER_DETAILS_REQUEST'
-
-export const ORDER_DETAILS_SUCCESS = 'ORDER_DETAILS_SUCCESS'
-
-export const ORDER_DETAILS_FAIL = 'ORDER_DETAILS_FAIL'
-
-
-
-ordereducers
-
-ORDER_DETAILS_REQUEST,
-
-    ORDER_DETAILS_SUCCESS,
-
-    ORDER_DETAILS_FAIL,
-
-
-
-export const orderDetailsReducer = (state = { order: {} }, action) => {
-
-    switch (action.type) {
-
-
-
-        case ORDER_DETAILS_REQUEST:
-
-            return {
-
-                loading: true
-
-            }
-
-
-
-        case ORDER_DETAILS_SUCCESS:
-
-            return {
-
-                loading: false,
-
-                order: action.payload
-
-            }
-
-
-
-        case ORDER_DETAILS_FAIL:
-
-            return {
-
-                loading: false,
-
-                error: action.payload
-
-            }
-
-        case CLEAR_ERRORS:
-
-            return {
-
-                ...state,
-
-                error: null
-
-            }
-
-
-
-        default:
-
-            return state;
-
-    }
-
-}
-
-
-
-store
-
-import { newOrderReducer, myOrdersReducer,orderDetailsReducer } from './reducers/orderReducers'
-
-orderDetails: orderDetailsReducer,
-
-
-
-import ListOrders from './components/order/ListOrders'
-
-<ProtectedRoute path="/orders/me" component={ListOrders} exact />
-
-
-
-orderactions
-
-ORDER_DETAILS_REQUEST,
-
-    ORDER_DETAILS_SUCCESS,
-
-    ORDER_DETAILS_FAIL,
-
-
-
-// Get order details
-
-export const getOrderDetails = (id) => async (dispatch) => {
-
-    try {
-
-
-
-        dispatch({ type: ORDER_DETAILS_REQUEST });
-
-
-
-        const { data } = await axios.get(`/api/v1/order/${id}`)
-
-
-
-        dispatch({
-
-            type: ORDER_DETAILS_SUCCESS,
-
-            payload: data.order
-
-        })
-
-
-
-    } catch (error) {
-
-        dispatch({
-
-            type: ORDER_DETAILS_FAIL,
-
-            payload: error.response.data.message
-
-        })
-
-    }
-
-}
-
-
-
-component/order/orderDetails
-
-import React, { Fragment, useEffect } from 'react'
-
-import { Link, useParams } from 'react-router-dom'
-
-import MetaData from '../layout/MetaData'
-
-import Loader from '../layout/Loader'
-
-
-import { useAlert } from 'react-alert'
-
-import { useDispatch, useSelector } from 'react-redux'
-
-import { getOrderDetails, clearErrors } from '../../actions/orderActions'
-
-
-
-const OrderDetails = () => {
-
-
-
-    const alert = useAlert();
-
-    const dispatch = useDispatch();
-
-
-
-    const { loading, error, order = {} } = useSelector(state => state.orderDetails)
-
-    const { shippingInfo, orderItems, paymentInfo, user, totalPrice, orderStatus } = order
-
-
-
-    let { id } = useParams();
-
-
-
-    useEffect(() => {
-
-        dispatch(getOrderDetails(id));
-
-
-
-        if (error) {
-
-            alert.error(error);
-
-            dispatch(clearErrors())
+          </ProtectedRoute>
 
         }
 
-    }, [dispatch, alert, error, id])
-
-
-
-    const shippingDetails = shippingInfo && `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.postalCode}, ${shippingInfo.country}`
-
-
-
-    const isPaid = paymentInfo && paymentInfo.status === 'succeeded' ? true : false
-
-
-
-    return (
-
-        <Fragment>
-
-            <MetaData title={'Order Details'} />
-
-
-
-            {loading ? <Loader /> : (
-
-                <Fragment>
-
-                    <div className="row d-flex justify-content-between">
-
-                        <div className="col-12 col-lg-8 mt-5 order-details">
-
-
-
-                            <h1 className="my-5">Order # {order._id}</h1>
-
-
-
-                            <h4 className="mb-4">Shipping Info</h4>
-
-                            <p><b>Name:</b> {user && user.name}</p>
-
-                            <p><b>Phone:</b> {shippingInfo && shippingInfo.phoneNo}</p>
-
-                            <p className="mb-4"><b>Address:</b>{shippingDetails}</p>
-
-                            <p><b>Amount:</b> ${totalPrice}</p>
-
-
-
-                            <hr />
-
-
-
-                            <h4 className="my-4">Payment</h4>
-
-                            <p className={isPaid ? "greenColor" : "redColor"}><b>{isPaid ? "PAID" : "NOT PAID"}</b></p>
-
-
-
-
-
-                            <h4 className="my-4">Order Status:</h4>
-
-                            <p className={order.orderStatus && String(order.orderStatus).includes('Delivered') ? "greenColor" : "redColor"} ><b>{orderStatus}</b></p>
-
-
-
-
-
-                            <h4 className="my-4">Order Items:</h4>
-
-
-
-                            <hr />
-
-                            <div className="cart-item my-1">
-
-                                {orderItems && orderItems.map(item => (
-
-                                    <div key={item.product} className="row my-5">
-
-                                        <div className="col-4 col-lg-2">
-
-                                            <img src={item.image} alt={item.name} height="45" width="65" />
-
-                                        </div>
-
-
-
-                                        <div className="col-5 col-lg-5">
-
-                                            <Link to={`/products/${item.product}`}>{item.name}</Link>
-
-                                        </div>
-
-
-
-
-
-                                        <div className="col-4 col-lg-2 mt-4 mt-lg-0">
-
-                                            <p>${item.price}</p>
-
-                                        </div>
-
-
-
-                                        <div className="col-4 col-lg-3 mt-4 mt-lg-0">
-
-                                            <p>{item.quantity} Piece(s)</p>
-
-                                        </div>
-
-                                    </div>
-
-                                ))}
-
-                            </div>
-
-                            <hr />
-
-                        </div>
-
-                    </div>
-
-                </Fragment>
-
-            )}
-
-
-
-        </Fragment>
-
-    )
-
-}
-
-
-
-export default OrderDetails
-
-
-
-App.js
-
-import OrderDetails from './components/order/OrderDetails'
-
-<Route path="/order/:id" 
-
-            element={
-
-             <ProtectedRoute >
-
-                 <OrderDetails />
-
-             </ProtectedRoute> }  />
-
+      />
